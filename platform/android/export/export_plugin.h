@@ -63,6 +63,7 @@ class AndroidEditorGradleRunner;
 
 class EditorExportPlatformAndroid : public EditorExportPlatform {
 	GDCLASS(EditorExportPlatformAndroid, EditorExportPlatform);
+	friend class TestEditorExportPlatformAndroid;
 
 	Ref<ImageTexture> logo;
 	Ref<ImageTexture> run_icon;

@@ -115,6 +115,11 @@ android {
 
     assetPacks = [":assetPackInstallTime"]
 
+    androidResources {
+        // Avoid a second decompression layer before loading VM bundles.
+        noCompress += ["gdbc"]
+    }
+
     namespace = 'com.godot.game'
 
     defaultConfig {

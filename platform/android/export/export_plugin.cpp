@@ -658,6 +658,7 @@ bool EditorExportPlatformAndroid::_should_compress_asset(const String &p_path, c
 		".scn", // Binary scenes are usually already compressed
 		".ctex", // Streamable textures are usually already compressed
 		".pck", // Pack.
+		".gdbc", // VM bundles already manage their own storage compression.
 		// Trailer for easier processing
 		nullptr
 	};
