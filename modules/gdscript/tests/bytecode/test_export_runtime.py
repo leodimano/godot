@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Verify ordinary Windows Debug/Release exports with matching templates."""
+"""Verify ordinary desktop Debug/Release exports with matching templates."""
 
 import argparse
 import json
 import shutil
 import struct
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -38,9 +39,13 @@ def main():
     parser.add_argument("editor", type=Path)
     parser.add_argument("--debug-template", type=Path)
     parser.add_argument("--release-template", type=Path)
+    parser.add_argument("--architecture", choices=("x86_64", "x86_32", "arm64"), default="x86_64")
+    parser.add_argument("--platform", choices=("windows", "linux"), default="windows")
+    parser.add_argument("--wsl-distribution", help="Run a Linux export in this WSL distribution from a Windows host.")
     parser.add_argument("--log-directory", type=Path, required=True)
     args = parser.parse_args()
     assert args.debug_template or args.release_template, "Select at least one target profile."
+    assert not args.wsl_distribution or (sys.platform == "win32" and args.platform == "linux")
     editor = str(args.editor.resolve())
     args.log_directory.mkdir(parents=True, exist_ok=True)
 
@@ -61,6 +66,17 @@ def main():
         shutil.copytree(Path(__file__).parent / "export_runtime", project, ignore=shutil.ignore_patterns(".godot"))
         preset = project / "export_presets.cfg"
         base_preset = preset.read_text(encoding="utf-8")
+        base_preset = base_preset.replace(
+            'binary_format/architecture="x86_64"', f'binary_format/architecture="{args.architecture}"'
+        )
+        preset_name = "Windows Compiled" if args.platform == "windows" else "Linux Compiled"
+        if args.platform == "linux":
+            base_preset = base_preset.replace('platform="Windows Desktop"', 'platform="Linux"').replace(
+                "Windows Compiled", preset_name
+            )
+            base_preset = base_preset.replace("codesign/enable=false\n", "").replace(
+                "application/modify_resources=false\n", ""
+            )
         template_options = ""
         for profile, template in [("debug", args.debug_template), ("release", args.release_template)]:
             if template:
@@ -80,7 +96,8 @@ def main():
                     encoding="utf-8",
                 )
                 stem = f"{profile}-{compression}"
-                executable = root / f"{stem}.exe"
+                extension = "exe" if args.platform == "windows" else args.architecture
+                executable = root / f"{stem}.{extension}"
                 run(
                     stem + "-export",
                     [
@@ -89,7 +106,7 @@ def main():
                         "--path",
                         str(project),
                         f"--export-{profile}",
-                        "Windows Compiled",
+                        preset_name,
                         str(executable),
                     ],
                 )
@@ -101,13 +118,21 @@ def main():
                 assert len(manifest["script_paths"]) == 4, manifest
                 for source in ("main", "peer", "data", "startup"):
                     assert b"gdscript.gdbc" in files[f"{source}.gd.remap"]
-                log = run(stem + "-run", [str(executable), "--headless", "--", "--verify"])
+                if args.wsl_distribution:
+                    runner = ["wsl", "-d", args.wsl_distribution, "--exec"]
+                    linux_path = subprocess.check_output(
+                        runner + ["wslpath", "-a", executable.as_posix()], text=True, timeout=15
+                    ).strip()
+                    command = runner + [linux_path]
+                else:
+                    command = [str(executable)]
+                log = run(stem + "-run", command + ["--headless", "--", "--verify"])
                 report = next(
                     json.loads(line.split(" ", 1)[1])
                     for line in log.splitlines()
                     if line.startswith("COMPILED_EXPORT_RESULT ")
                 )
-                assert report == {"compiled": True, "failures": []}, report
+                assert report == {"compiled": True, "failures": [], "architecture": args.architecture}, report
                 profiles = [
                     json.loads(line.split(" ", 1)[1])
                     for line in log.splitlines()
@@ -119,7 +144,10 @@ def main():
                     )
                 else:
                     assert not profiles
-                print(f"PASS standard {profile} export, compression={manifest['compression']}, source-free runtime")
+                print(
+                    f"PASS {args.platform} {args.architecture} {profile}, "
+                    f"compression={manifest['compression']}, source-free runtime"
+                )
         preset.write_text(
             (base_preset + template_options).replace('exclude_filter=""', 'exclude_filter="peer.gd"'),
             encoding="utf-8",
@@ -132,7 +160,7 @@ def main():
                 "--path",
                 str(project),
                 "--export-pack",
-                "Windows Compiled",
+                preset_name,
                 str(root / "invalid.pck"),
             ],
             success=False,
