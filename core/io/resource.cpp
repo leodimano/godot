@@ -108,6 +108,7 @@ void Resource::set_path(const String &p_path, bool p_take_over) {
 		path_cache = p_path;
 
 		if (!path_cache.is_empty()) {
+			load_completion = ResourceLoader::_get_current_load_completion();
 			ResourceCache::resources[path_cache] = this;
 		}
 	}
@@ -849,7 +850,7 @@ bool ResourceCache::has(const String &p_path) {
 	return true;
 }
 
-Ref<Resource> ResourceCache::get_ref(const String &p_path) {
+Ref<Resource> ResourceCache::get_ref(const String &p_path, Ref<ResourceLoadCompletion> *r_completion) {
 	Ref<Resource> ref;
 	{
 		MutexLock mutex_lock(lock);
@@ -864,6 +865,9 @@ Ref<Resource> ResourceCache::get_ref(const String &p_path) {
 			(*res)->path_cache = String();
 			resources.erase(p_path);
 			res = nullptr;
+		}
+		if (r_completion) {
+			*r_completion = res ? (*res)->load_completion : Ref<ResourceLoadCompletion>();
 		}
 	}
 

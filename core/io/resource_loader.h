@@ -31,6 +31,7 @@
 #pragma once
 
 #include "core/io/resource.h"
+#include "core/io/resource_load_completion.h"
 #include "core/io/resource_loader_constants.h"
 #include "core/object/gdvirtual.gen.h"
 #include "core/object/worker_thread_pool.h"
@@ -146,6 +147,10 @@ public:
 
 	static Ref<LoadToken> _load_start(const String &p_path, const String &p_type_hint, LoadThreadMode p_thread_mode, CacheMode p_cache_mode, bool p_for_user = false);
 	static Ref<Resource> _load_complete(LoadToken &p_load_token, Error *r_error);
+	static Ref<LoadToken> _get_current_load_token();
+	static Ref<ResourceLoadCompletion> _get_current_load_completion();
+	static bool _set_load_task_owner_affine(const Ref<LoadToken> &p_token, bool p_enabled);
+	static void _cache_resource_if_missing(const Ref<Resource> &p_resource, const String &p_path);
 
 private:
 	static LoadToken *_load_threaded_request_reuse_user_token(const String &p_path);
@@ -185,6 +190,7 @@ private:
 		ConditionVariable *cond_var = nullptr; // In not in the worker pool or already awaiting, this is used as a secondary awaiting mechanism.
 		uint32_t awaiters_count = 0;
 		LoadToken *load_token = nullptr;
+		Ref<ResourceLoadCompletion> completion;
 		String local_path;
 		String type_hint;
 		float progress = 0.0f;
@@ -205,6 +211,7 @@ private:
 		bool started_load : 1;
 		bool finished_load : 1;
 		bool connections_propagated : 1;
+		bool owner_affine : 1; // An in-progress format transaction must finish on its owning thread.
 
 		struct ResourceChangedConnection {
 			Resource *source = nullptr;
@@ -220,9 +227,13 @@ private:
 				use_sub_threads(false),
 				started_load(false),
 				finished_load(false),
-				connections_propagated(false) {}
+				connections_propagated(false),
+				owner_affine(false) {}
 	};
 	static void _run_load_task(void *p_userdata);
+	static void _join_load_completion(ThreadLoadTask *p_dependency);
+	static void _release_load_task(ThreadLoadTask &p_task);
+	static void _await_load_completion(ThreadLoadTask &p_task, MutexLock<SafeBinaryMutex<BINARY_MUTEX_TAG>> &p_lock);
 
 	static thread_local bool import_thread;
 	static thread_local int load_nesting;
@@ -230,6 +241,7 @@ private:
 	static thread_local ThreadLoadTask *curr_load_task;
 
 	static SafeBinaryMutex<BINARY_MUTEX_TAG> thread_load_mutex;
+	static ConditionVariable load_completion;
 	friend SafeBinaryMutex<BINARY_MUTEX_TAG> &_get_res_loader_mutex();
 
 	static HashMap<String, ThreadLoadTask> thread_load_tasks;

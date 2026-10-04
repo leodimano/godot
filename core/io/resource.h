@@ -30,6 +30,7 @@
 
 #pragma once
 
+#include "core/io/resource_load_completion.h"
 #include "core/io/resource_uid.h" // IWYU pragma: export. Make available to all resources.
 #include "core/object/gdvirtual.gen.h"
 #include "core/object/ref_counted.h"
@@ -71,6 +72,7 @@ private:
 
 	String name;
 	String path_cache;
+	Ref<ResourceLoadCompletion> load_completion; // Protected by ResourceCache::lock.
 	String scene_unique_id;
 
 #ifdef TOOLS_ENABLED
@@ -209,7 +211,7 @@ class ResourceCache {
 
 public:
 	static bool has(const String &p_path);
-	static Ref<Resource> get_ref(const String &p_path);
+	static Ref<Resource> get_ref(const String &p_path, Ref<ResourceLoadCompletion> *r_completion = nullptr);
 	static void get_cached_resources(List<Ref<Resource>> *p_resources);
 	static int get_cached_resource_count();
 };
