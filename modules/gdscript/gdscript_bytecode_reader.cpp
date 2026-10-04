@@ -924,12 +924,12 @@ Ref<GDScript> GDScriptBytecodeReader::load_graph(const String &p_path, const Str
 	const bool debug = false;
 #endif
 	if (data["abi"].get_type() != Variant::STRING || data["vm_source_sha256"].get_type() != Variant::STRING ||
-			data["pointer_size"].get_type() != Variant::INT || data["real_size"].get_type() != Variant::INT || data["debug"].get_type() != Variant::BOOL) {
+			data["real_size"].get_type() != Variant::INT || data["debug"].get_type() != Variant::BOOL) {
 		return Ref<GDScript>();
 	}
 	const bool compatible = String(data["abi"]) == GDScriptBytecodeFormat::SCHEMA_ID &&
 			String(data["vm_source_sha256"]) == GDSCRIPT_BYTECODE_VM_SOURCE_SHA256 &&
-			int64_t(data["pointer_size"]) == sizeof(void *) && int64_t(data["real_size"]) == sizeof(real_t) && bool(data["debug"]) == debug;
+			int64_t(data["real_size"]) == sizeof(real_t) && bool(data["debug"]) == debug;
 	ERR_FAIL_COND_V_MSG(!compatible, Ref<GDScript>(), vformat("Cannot load precompiled GDScript '%s': incompatible bytecode. Use an editor and export template built from matching sources, with the same build profile and precision.", p_path));
 	// Resolve and verify each native signature once, before scripts or resources exist.
 	const GDScriptBytecodeView bindings = data["native_bindings"];

@@ -247,6 +247,13 @@ TEST_CASE("[GDScript][Bytecode] Reader rejects incompatible graphs and malformed
 	GDScriptBytecodeImage image;
 	REQUIRE(image.open(FileAccess::get_file_as_bytes(fixture.output_path)) == OK);
 	Dictionary data = copy_bytecode_test_metadata(image.root());
+	SUBCASE("Legacy pointer-dependent schema") {
+		data["abi"] = "godot-gdscript-bytecode-v1";
+		data["pointer_size"] = int(sizeof(void *));
+	}
+	SUBCASE("Real-number precision differs") {
+		data["real_size"] = sizeof(real_t) == 4 ? 8 : 4;
+	}
 	SUBCASE("Source identity differs") {
 		data["vm_source_sha256"] = "different-build";
 	}

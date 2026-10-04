@@ -702,7 +702,6 @@ Error GDScriptBytecodeWriter::save_scripts_internal(const TypedArray<GDScript> &
 	Dictionary data;
 	data["abi"] = GDScriptBytecodeFormat::SCHEMA_ID;
 	data["vm_source_sha256"] = GDSCRIPT_BYTECODE_VM_SOURCE_SHA256;
-	data["pointer_size"] = int(sizeof(void *));
 	data["real_size"] = int(sizeof(real_t));
 	data["debug"] = GDScriptCompilationContext::is_debug_compilation();
 	data["native_bindings"] = context.native_bindings;

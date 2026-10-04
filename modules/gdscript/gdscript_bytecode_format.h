@@ -36,7 +36,9 @@
 namespace GDScriptBytecodeFormat {
 
 // Metadata schema identity is separate from VM source and native API identity.
-inline constexpr const char *SCHEMA_ID = "godot-gdscript-bytecode-v1";
+// Version 2 uses pointer-independent metadata: code and indices are fixed-width,
+// while native bindings and runtime caches are reconstructed on the target.
+inline constexpr const char *SCHEMA_ID = "godot-gdscript-bytecode-v2";
 
 inline constexpr uint32_t IMAGE_MAGIC = 0x49424447; // GDBI, little endian.
 inline constexpr uint32_t IMAGE_VERSION = 3;

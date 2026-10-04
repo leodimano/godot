@@ -53,10 +53,14 @@ unavailable in this configuration.
 Compatibility and current boundaries
 -------------------------------------
 
-* Instructions contain VM operations, not CPU machine code. Loading requires
-  matching VM source identity, schema, pointer width, real-number precision
-  and build profile. A 64-bit host artifact is not accepted by a 32-bit target.
-  Native classes and method signatures are validated against the target.
+* Instructions contain VM operations, not CPU machine code. Schema version 2
+  stores fixed-width instructions and indices, marshalled values, and symbolic
+  native bindings, not host pointers or native memory layouts. Runtime pointers,
+  stack storage and operator caches are created by the target. Loading requires
+  matching VM source identity, schema, real-number precision and build profile,
+  but not matching host and target pointer widths. Native classes and method
+  signatures are validated against the target. Version 1 bundles must be exported
+  again with a matching editor and templates.
 * The bundle includes the selected runtime script graph. Scene and resource
   references use ordinary logical script paths remapped to that bundle.
   Scripts loaded dynamically must also be included by the export preset.

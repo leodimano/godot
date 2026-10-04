@@ -84,6 +84,8 @@ static func tick() -> int:
 	REQUIRE(image.open(first) == OK);
 	const GDScriptBytecodeView data = image.root();
 	CHECK(String(data["abi"]) == GDScriptBytecodeFormat::SCHEMA_ID);
+	CHECK_FALSE(data.has("pointer_size"));
+	CHECK(int(data["real_size"]) == sizeof(real_t));
 	CHECK(String(data["vm_source_sha256"]).length() == 64);
 	CHECK(data["scripts"].size() == 2);
 	CHECK(data["native_bindings"].size() > 0);
