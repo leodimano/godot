@@ -126,6 +126,26 @@ failure in a platform's dependencies does not establish a bytecode failure or a
 passing runtime test. Previous reference-build results do not establish coverage
 of newly exported bundles.
 
+Continuing on macOS
+~~~~~~~~~~~~~~~~~~~
+
+Continue from ``feature/bytecode-portability`` in the Wild fork. Read the root
+``AGENTS.md`` and the pinned tooling references in the Windows validation record
+before selecting the Apple toolchain. Verify the Mac's architecture, Xcode and
+SDK versions against those release scripts before building matching editor and
+templates. Do not substitute a reduced engine or treat a local compiler build
+as official-configuration validation.
+
+The desktop runtime harness currently supports Windows and Linux only. Add
+normal macOS export/package execution support before claiming that its shared
+fixture passed on macOS. Validate Debug/Release and None/Zstandard on macOS,
+then iOS and its Debug remote-debugger path, recording build-only and actual
+execution coverage separately. Do not rerun the Bike suite or historical
+benchmarks merely because work moved to another machine.
+
+Test entry points
+~~~~~~~~~~~~~~~~~
+
 The C++ tests under ``modules/gdscript/tests`` cover storage, metadata,
 instruction layout, writer/reader behavior, shared identities, compatibility
 rejection and concurrent logical-path loads. The process tests additionally

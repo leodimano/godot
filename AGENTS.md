@@ -1,5 +1,18 @@
 # Fork development rules
 
+## Wild identity and versioning
+
+- The fork is named **Wild**. Keep the upstream Godot version separate from the
+  fork's independent semantic version.
+- The agreed first-release display is `Godot 4.7.2 — Wild v0.1.0`, with the
+  planned Git tag `4.7.2-wild-v0.1.0`. This is a naming convention, not an
+  instruction to create a tag, publish a release, or change build metadata now.
+- The tag is a composite identifier; Wild's SemVer component is `0.1.0`.
+  Preserve Godot's upstream version fields. Do not use build metadata as an
+  ordered version or treat the fork label as a bytecode compatibility check.
+- Editor and export templates still need matching bytecode compatibility
+  identities. A matching display name alone does not establish compatibility.
+
 ## Upstream build parity
 
 - Godot `4.7.2-stable` is the comparison baseline. Follow upstream C++ style,
