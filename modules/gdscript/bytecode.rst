@@ -9,12 +9,11 @@ continue to use the source compiler.
 Building and exporting
 ----------------------
 
-Build an editor and export templates from the same source revision. For example,
-the standard Windows builds are::
-
-    scons platform=windows target=editor arch=x86_64
-    scons platform=windows target=template_debug arch=x86_64
-    scons platform=windows target=template_release arch=x86_64
+Build an editor and export templates from the same source revision using the
+version-matched official release configuration described under Focused
+validation. Use the corresponding platform script's toolchain and options;
+a standalone SCons invocation can select a different host compiler and is not
+equivalent to that release setup.
 
 All ordinary engine modules and renderers remain enabled by default. Install
 the matching templates or select their files under the export preset's
@@ -88,12 +87,17 @@ and `release build scripts <https://github.com/godotengine/godot-build-scripts/t
 including their toolchains, dependencies, production options and packaging.
 Record the exact tooling commits and container identities for each qualification
 run. A supported local build or upstream CI configuration is not a substitute.
-Official-container release qualification is pending.
 
-The release-tooling references inspected for this baseline are
-``build-containers`` commit ``3f3cc50c3f91c2be66e37aece9d9a57284e39db7`` and
-``godot-build-scripts`` commit ``63625f75c0f869dea4a01811522e10fefcd0f322``.
-They are reference inputs, not evidence that a release build has executed.
+Windows x86_32 Debug/Release exports have passed the shared runtime fixture in
+None and Zstandard modes using the official MinGW production configuration and
+a matching Windows x86_64 editor. The upstream string formatter is unchanged.
+Both Debug runs recorded zero source-pipeline entries; Release emitted no load
+profiling. Isolated compiler checks and missing-dependency rejection also passed.
+See `Windows MinGW validation <tests/bytecode/windows_mingw.rst>`_ for pinned
+source/tooling commits, image identities, build options and artifact hashes.
+This focused check does not qualify other target configurations or constitute
+a complete release. Official-configuration checks for other platforms remain
+pending.
 
 Development validation of schema-v2 exports has covered Windows x86_64 and
 Linux x86_64 Debug/Release templates, and single-threaded Web wasm32 Debug/Release
@@ -104,8 +108,8 @@ checked independence from the host OS/toolchain.
 
 Earlier Windows x86_32 MSVC Debug/Release checks passed with a native string
 formatter workaround. That unrelated workaround has been removed to preserve
-the upstream formatter. Those historical results do not qualify the current
-source: Windows x86_32 must be validated using the official MinGW/GCC setup.
+the upstream formatter. Those historical results are superseded by the focused
+official-configuration Windows x86_32 check above.
 
 On Android ARM64, a standard Debug template has passed the source-free remote
 debugger fixture on a physical device, including stepping and local/member
@@ -134,8 +138,9 @@ exercise the isolated worker and ordinary executable exports::
 The executable-export fixture covers a scene script, autoload, static
 initializer, typed constant, closure, inner class, RPC and scripted resource.
 It also exercises 64-bit integer values, typed dictionaries, native properties,
-runtime math constructors and operator caches. It checks the PCK directory for
-absent source/token files, verifies the runtime's architecture, executes both
+runtime math constructors, operator caches and native string formatting. It
+checks the PCK directory for absent source/token files, verifies the runtime's
+architecture, executes both
 storage modes, and rejects an excluded script dependency. It runs in a temporary
 project copy, leaving the developer's projects unchanged.
 
