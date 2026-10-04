@@ -125,7 +125,7 @@ def generateBuildTasks(String flavor = "template", String edition = "standard", 
     String libsDir = isTemplate ? "lib/libs/" : "lib/libs/tools/"
     def validAbis = ["arm64-v8a", "armeabi-v7a", "x86_64", "x86"]
     for (String target : supportedFlavorsBuildTypes[flavor]) {
-        File targetLibs = new File(libsDir + target)
+        File targetLibs = file(libsDir + target)
 
         if (targetLibs != null && targetLibs.isDirectory()) {
             targetLibs.listFiles()?.each { abiDir ->
