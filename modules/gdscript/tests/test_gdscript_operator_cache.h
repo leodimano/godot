@@ -31,6 +31,7 @@
 #pragma once
 
 #include "../gdscript.h"
+#include "../gdscript_bytecode_instructions.h"
 #include "../gdscript_function.h"
 
 #include "core/io/dir_access.h"
@@ -43,6 +44,10 @@ namespace GDScriptTests {
 
 class TestGDScriptFunctionAccessor {
 public:
+	static bool has_valid_instruction_layout(const GDScriptFunction *p_function) {
+		return GDScriptBytecodeInstructions::validate_layout(p_function->code, p_function->_instruction_args_size, p_function->default_arguments);
+	}
+
 	static Vector<int> copy_instructions(const GDScriptFunction *p_function) {
 		// A deep copy is required: a COW copy would miss writes through a raw pointer.
 		Vector<int> result;
@@ -84,6 +89,7 @@ static func equal(left, right):
 		GDScriptFunction *const *function = script->get_member_functions().getptr(name);
 		REQUIRE(function != nullptr);
 		REQUIRE(TestGDScriptFunctionAccessor::cache_count(*function) == 1);
+		CHECK(TestGDScriptFunctionAccessor::has_valid_instruction_layout(*function));
 		CHECK(TestGDScriptFunctionAccessor::first_signature(*function) == 0);
 		snapshots[name] = TestGDScriptFunctionAccessor::copy_instructions(*function);
 	}
