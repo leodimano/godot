@@ -3093,6 +3093,11 @@ static void _load_script_doc_cache(bool p_changes) {
 }
 
 void EditorHelp::load_script_doc_cache() {
+	// Documentation loading can enqueue this after a short command-line
+	// export/import has already destroyed the editor.
+	if (!EditorNode::get_singleton()) {
+		return;
+	}
 	if (!ProjectSettings::get_singleton()->is_project_loaded()) {
 		print_verbose("Skipping loading script doc cache since no project is open.");
 		return;
