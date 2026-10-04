@@ -40,6 +40,7 @@
 #endif
 
 #ifdef TOOLS_ENABLED
+#include "editor/gdscript_export_bundle.h"
 #include "editor/gdscript_export_compiler.h"
 #include "editor/gdscript_highlighter.h"
 #include "editor/gdscript_translation_parser_plugin.h"
@@ -82,6 +83,10 @@ GDScriptCache *gdscript_cache = nullptr;
 #ifdef TOOLS_ENABLED
 
 Ref<GDScriptEditorTranslationParserPlugin> gdscript_translation_parser_plugin;
+
+static Ref<EditorExportScriptBundle> _create_export_bundle() {
+	return memnew(GDScriptExportBundle);
+}
 
 class EditorExportGDScript : public EditorExportPlugin {
 	GDCLASS(EditorExportGDScript, EditorExportPlugin);
@@ -166,7 +171,10 @@ void initialize_gdscript_module(ModuleInitializationLevel p_level) {
 		const ClassDB::APIType previous_api = ClassDB::get_current_api();
 		ClassDB::set_current_api(ClassDB::API_NONE);
 		GDREGISTER_CLASS(GDScriptExportCompiler);
+		GDREGISTER_ABSTRACT_CLASS(EditorExportScriptBundle);
+		GDREGISTER_INTERNAL_CLASS(GDScriptExportBundle);
 		ClassDB::set_current_api(previous_api);
+		EditorExportScriptBundle::set_create_func(_create_export_bundle);
 		EditorNode::add_init_callback(_editor_init);
 
 		gdscript_translation_parser_plugin.instantiate();
@@ -187,6 +195,11 @@ void initialize_gdscript_module(ModuleInitializationLevel p_level) {
 }
 
 void uninitialize_gdscript_module(ModuleInitializationLevel p_level) {
+#ifdef TOOLS_ENABLED
+	if (p_level == MODULE_INITIALIZATION_LEVEL_SERVERS) {
+		EditorExportScriptBundle::set_create_func(nullptr);
+	}
+#endif
 	if (p_level == MODULE_INITIALIZATION_LEVEL_SERVERS) {
 		ScriptServer::unregister_language(script_language_gd);
 

@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  gdscript_export_bundle.h                                              */
+/*  editor_export_script_bundle.h                                         */
 /**************************************************************************/
 /*                         This file is part of:                          */
 /*                             GODOT ENGINE                               */
@@ -30,25 +30,36 @@
 
 #pragma once
 
-#include "core/templates/hash_map.h"
-#include "editor/export/editor_export_script_bundle.h"
+#include "core/object/ref_counted.h"
+#include "core/templates/hash_set.h"
+#include "core/variant/dictionary.h"
 
-// Owns one export's actual script inputs, after preset and plugin filtering.
-// It does not inspect directory names or maintain an application-specific list.
-class GDScriptExportBundle : public EditorExportScriptBundle {
-	GDCLASS(GDScriptExportBundle, EditorExportScriptBundle);
-
-	HashSet<String> sources;
-	HashMap<String, String> source_hashes;
-	HashSet<String> runtime_paths;
-	HashMap<String, String> resource_dependencies;
-	bool finished = false;
+// The language module supplies the implementation. The export pipeline must
+// not link directly against a module's concrete bundle implementation.
+class EditorExportScriptBundle : public RefCounted {
+	GDCLASS(EditorExportScriptBundle, RefCounted);
 
 public:
-	static constexpr const char *BUNDLE_PATH = "res://.godot/compiled/gdscript.gdbc";
-	static constexpr const char *MANIFEST_PATH = "res://.godot/compiled/gdscript.manifest.json";
-	virtual Error collect_file(const String &p_path, const Vector<uint8_t> &p_data, bool &r_skip) override;
-	virtual Error finish(HashSet<String> &r_selected_paths, Vector<String> &r_remaps, bool p_debug, int p_compression) override;
-	virtual String get_bundle_path() const override { return BUNDLE_PATH; }
-	virtual String get_manifest_path() const override { return MANIFEST_PATH; }
+	typedef Ref<EditorExportScriptBundle> (*CreateFunc)();
+
+private:
+	static CreateFunc create_func;
+
+protected:
+	Dictionary manifest;
+	Vector<uint8_t> bytecode;
+	String failure;
+
+public:
+	static void set_create_func(CreateFunc p_create_func);
+	static Ref<EditorExportScriptBundle> create();
+
+	virtual Error collect_file(const String &p_path, const Vector<uint8_t> &p_data, bool &r_skip) = 0;
+	virtual Error finish(HashSet<String> &r_selected_paths, Vector<String> &r_remaps, bool p_debug, int p_compression) = 0;
+	virtual String get_bundle_path() const = 0;
+	virtual String get_manifest_path() const = 0;
+
+	const Vector<uint8_t> &get_bytecode() const { return bytecode; }
+	const Dictionary &get_manifest() const { return manifest; }
+	const String &get_failure() const { return failure; }
 };

@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  gdscript_export_bundle.h                                              */
+/*  editor_export_script_bundle.cpp                                       */
 /**************************************************************************/
 /*                         This file is part of:                          */
 /*                             GODOT ENGINE                               */
@@ -28,27 +28,14 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-#pragma once
+#include "editor_export_script_bundle.h"
 
-#include "core/templates/hash_map.h"
-#include "editor/export/editor_export_script_bundle.h"
+EditorExportScriptBundle::CreateFunc EditorExportScriptBundle::create_func = nullptr;
 
-// Owns one export's actual script inputs, after preset and plugin filtering.
-// It does not inspect directory names or maintain an application-specific list.
-class GDScriptExportBundle : public EditorExportScriptBundle {
-	GDCLASS(GDScriptExportBundle, EditorExportScriptBundle);
+void EditorExportScriptBundle::set_create_func(CreateFunc p_create_func) {
+	create_func = p_create_func;
+}
 
-	HashSet<String> sources;
-	HashMap<String, String> source_hashes;
-	HashSet<String> runtime_paths;
-	HashMap<String, String> resource_dependencies;
-	bool finished = false;
-
-public:
-	static constexpr const char *BUNDLE_PATH = "res://.godot/compiled/gdscript.gdbc";
-	static constexpr const char *MANIFEST_PATH = "res://.godot/compiled/gdscript.manifest.json";
-	virtual Error collect_file(const String &p_path, const Vector<uint8_t> &p_data, bool &r_skip) override;
-	virtual Error finish(HashSet<String> &r_selected_paths, Vector<String> &r_remaps, bool p_debug, int p_compression) override;
-	virtual String get_bundle_path() const override { return BUNDLE_PATH; }
-	virtual String get_manifest_path() const override { return MANIFEST_PATH; }
-};
+Ref<EditorExportScriptBundle> EditorExportScriptBundle::create() {
+	return create_func ? create_func() : Ref<EditorExportScriptBundle>();
+}
