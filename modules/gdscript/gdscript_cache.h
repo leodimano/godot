@@ -124,6 +124,7 @@ public:
 	 */
 	static Ref<GDScript> get_full_script(const String &p_path, Error &r_error, const String &p_owner = String(), bool p_update_from_disk = false);
 	static Ref<GDScript> get_cached_script(const String &p_path);
+	static void add_compiled_script(const Ref<GDScript> &p_script);
 	static Error finish_compiling(const String &p_owner);
 	static void add_static_script(Ref<GDScript> p_script);
 	static void remove_static_script(const String &p_fqcn);

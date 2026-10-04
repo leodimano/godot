@@ -345,6 +345,7 @@ private:
 	friend class GDScript;
 	friend class GDScriptCompiler;
 	friend class GDScriptBytecodeWriter;
+	friend class GDScriptBytecodeReader;
 	friend class GDScriptTests::TestGDScriptFunctionAccessor;
 	friend class GDScriptByteCodeGenerator;
 	friend class GDScriptLanguage;

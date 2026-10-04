@@ -85,6 +85,7 @@ class GDScript : public Script {
 	friend class GDScriptCompiler;
 	friend class GDScriptCompilationContext;
 	friend class GDScriptBytecodeWriter;
+	friend class GDScriptBytecodeReader;
 	friend class GDScriptDocGen;
 	friend class GDScriptLambdaCallable;
 	friend class GDScriptLambdaSelfCallable;
@@ -181,6 +182,9 @@ private:
 	String source;
 	Vector<uint8_t> binary_tokens;
 	String path;
+	// A cached compiled generation cannot be mixed with another bundle.
+	String compiled_bundle;
+	String compiled_bundle_digest;
 	uint64_t compilation_initialization_order = 0;
 	bool retain_static_data = false;
 	bool path_valid = false; // False if using default path.

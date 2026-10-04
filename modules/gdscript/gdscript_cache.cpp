@@ -420,6 +420,12 @@ Ref<GDScript> GDScriptCache::get_cached_script(const String &p_path) {
 	return Ref<GDScript>();
 }
 
+void GDScriptCache::add_compiled_script(const Ref<GDScript> &p_script) {
+	ERR_FAIL_COND(p_script.is_null() || !p_script->is_valid());
+	MutexLock lock(singleton->mutex);
+	singleton->full_gdscript_cache[p_script->get_script_path()] = p_script;
+}
+
 Error GDScriptCache::finish_compiling(const String &p_owner) {
 	MutexLock lock(singleton->mutex);
 

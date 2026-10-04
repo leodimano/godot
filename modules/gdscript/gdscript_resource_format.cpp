@@ -30,6 +30,7 @@
 
 #include "gdscript_resource_format.h"
 
+#include "gdscript_bytecode_reader.h"
 #include "gdscript_cache.h"
 #include "gdscript_parser.h"
 
@@ -37,6 +38,24 @@
 #include "core/object/class_db.h"
 
 Ref<Resource> ResourceFormatLoaderGDScript::load(const String &p_path, const String &p_original_path, Error *r_error, bool p_use_sub_threads, float *r_progress, CacheMode p_cache_mode) {
+	if (p_path.get_extension().to_lower() == "gdbc") {
+		// A compiled graph is published as one generation. Partial replacement
+		// would mix class identities, so unsupported cache modes fail explicitly.
+		if (p_cache_mode != CACHE_MODE_REUSE && p_cache_mode != CACHE_MODE_IGNORE_DEEP) {
+			if (r_error) {
+				*r_error = ERR_UNAVAILABLE;
+			}
+			return Ref<Resource>();
+		}
+		Ref<GDScript> script = GDScriptBytecodeReader::load_resource(p_path, p_original_path, p_cache_mode == CACHE_MODE_REUSE);
+		if (r_error) {
+			*r_error = script.is_valid() ? OK : ERR_FILE_CORRUPT;
+		}
+		if (r_progress && script.is_valid()) {
+			*r_progress = 1.0;
+		}
+		return script;
+	}
 	Error err;
 	bool ignoring = p_cache_mode == CACHE_MODE_IGNORE || p_cache_mode == CACHE_MODE_IGNORE_DEEP;
 	Ref<GDScript> scr = GDScriptCache::get_full_script(p_original_path, err, "", ignoring);
@@ -57,6 +76,7 @@ Ref<Resource> ResourceFormatLoaderGDScript::load(const String &p_path, const Str
 void ResourceFormatLoaderGDScript::get_recognized_extensions(List<String> *p_extensions) const {
 	p_extensions->push_back("gd");
 	p_extensions->push_back("gdc");
+	p_extensions->push_back("gdbc");
 }
 
 bool ResourceFormatLoaderGDScript::handles_type(const String &p_type) const {
@@ -65,13 +85,17 @@ bool ResourceFormatLoaderGDScript::handles_type(const String &p_type) const {
 
 String ResourceFormatLoaderGDScript::get_resource_type(const String &p_path) const {
 	String el = p_path.get_extension().to_lower();
-	if (el == "gd" || el == "gdc") {
+	if (el == "gd" || el == "gdc" || el == "gdbc") {
 		return "GDScript";
 	}
 	return "";
 }
 
 void ResourceFormatLoaderGDScript::get_dependencies(const String &p_path, List<String> *p_dependencies, bool p_add_types) {
+	if (p_path.get_extension().to_lower() == "gdbc") {
+		// The exported bundle already contains its selected script graph.
+		return;
+	}
 	Ref<FileAccess> file = FileAccess::open(p_path, FileAccess::READ);
 	ERR_FAIL_COND_MSG(file.is_null(), "Cannot open file '" + p_path + "'.");
 
