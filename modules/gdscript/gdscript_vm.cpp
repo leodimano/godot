@@ -759,8 +759,7 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 
 		OPCODE_SWITCH(_code_ptr[ip]) {
 			OPCODE(OPCODE_OPERATOR) {
-				constexpr int _pointer_size = sizeof(Variant::ValidatedOperatorEvaluator) / sizeof(*_code_ptr);
-				CHECK_SPACE(7 + _pointer_size);
+				CHECK_SPACE(6);
 
 				bool valid;
 				Variant::Operator op = (Variant::Operator)_code_ptr[ip + 4];
@@ -769,22 +768,24 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 				GET_VARIANT_PTR(a, 0);
 				GET_VARIANT_PTR(b, 1);
 				GET_VARIANT_PTR(dst, 2);
+				const int cache_index = _code_ptr[ip + 5];
+				GD_ERR_BREAK(cache_index < 0 || uint32_t(cache_index) >= operator_caches.size());
+				OperatorCache &cache = operator_caches[cache_index];
 				// Compute signatures (types of operands) so it can be optimized when matching.
-				uint32_t op_signature = _code_ptr[ip + 5];
+				uint32_t op_signature = cache.signature.get();
 				uint32_t actual_signature = (a->get_type() << 8) | (b->get_type());
 
 #ifdef DEBUG_ENABLED
 				if (op == Variant::OP_DIVIDE || op == Variant::OP_MODULE) {
 					// Don't optimize division and modulo since there's not check for division by zero with validated calls.
 					op_signature = 0xFFFF;
-					_code_ptr[ip + 5] = op_signature;
 				}
 #endif
 
 				// Check if this is the first run. If so, store the current signature for the optimized path.
 				if (unlikely(op_signature == 0)) {
 					static Mutex initializer_mutex;
-					initializer_mutex.lock();
+					MutexLock initializer_lock(initializer_mutex);
 					Variant::Type a_type = (Variant::Type)((actual_signature >> 8) & 0xFF);
 					Variant::Type b_type = (Variant::Type)(actual_signature & 0xFF);
 
@@ -794,7 +795,6 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 #ifdef DEBUG_ENABLED
 						err_text = "Invalid operands '" + Variant::get_type_name(a->get_type()) + "' and '" + Variant::get_type_name(b->get_type()) + "' in operator '" + Variant::get_operator_name(op) + "'.";
 #endif
-						initializer_mutex.unlock();
 						OPCODE_BREAK;
 					} else {
 						Variant::Type ret_type = Variant::get_operator_return_type(op, a_type, b_type);
@@ -802,18 +802,19 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 						op_func(a, b, dst);
 
 						// Check again in case another thread already set it.
-						if (_code_ptr[ip + 5] == 0) {
-							_code_ptr[ip + 5] = actual_signature;
-							_code_ptr[ip + 6] = static_cast<int>(ret_type);
-							Variant::ValidatedOperatorEvaluator *tmp = reinterpret_cast<Variant::ValidatedOperatorEvaluator *>(&_code_ptr[ip + 7]);
-							*tmp = op_func;
+						if (cache.signature.get() == 0) {
+							cache.return_type = ret_type;
+							cache.evaluator = op_func;
+							// Release/acquire publication keeps the descriptor visible before
+							// another thread enters the fast path. Zero remains uninitialized,
+							// including for the valid NIL/NIL operand signature.
+							cache.signature.set(actual_signature + 1);
 						}
 					}
-					initializer_mutex.unlock();
-				} else if (likely(op_signature == actual_signature)) {
+				} else if (likely(op_signature == actual_signature + 1)) {
 					// If the signature matches, we can use the optimized path.
-					Variant::Type ret_type = static_cast<Variant::Type>(_code_ptr[ip + 6]);
-					Variant::ValidatedOperatorEvaluator op_func = *reinterpret_cast<Variant::ValidatedOperatorEvaluator *>(&_code_ptr[ip + 7]);
+					Variant::Type ret_type = cache.return_type;
+					Variant::ValidatedOperatorEvaluator op_func = cache.evaluator;
 
 					// Make sure the return value has the correct type.
 					VariantInternal::initialize(dst, ret_type);
@@ -841,7 +842,7 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 					*dst = ret;
 #endif
 				}
-				ip += 7 + _pointer_size;
+				ip += 6;
 			}
 			DISPATCH_OPCODE;
 

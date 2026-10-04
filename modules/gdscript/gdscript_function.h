@@ -43,6 +43,10 @@
 class GDScriptInstance;
 class GDScript;
 
+namespace GDScriptTests {
+class TestGDScriptFunctionAccessor;
+}
+
 class GDScriptDataType {
 public:
 	Vector<GDScriptDataType> container_element_types;
@@ -340,6 +344,7 @@ public:
 private:
 	friend class GDScript;
 	friend class GDScriptCompiler;
+	friend class GDScriptTests::TestGDScriptFunctionAccessor;
 	friend class GDScriptByteCodeGenerator;
 	friend class GDScriptLanguage;
 
@@ -364,6 +369,13 @@ private:
 	List<StackDebug> stack_debug;
 
 	Vector<int> code;
+	// Per-function execution state is not part of the immutable instruction image.
+	struct OperatorCache {
+		SafeNumeric<uint32_t> signature;
+		Variant::Type return_type = Variant::NIL;
+		Variant::ValidatedOperatorEvaluator evaluator = nullptr;
+	};
+	LocalVector<OperatorCache> operator_caches;
 	Vector<int> default_arguments;
 	Vector<Variant> constants;
 	HashMap<StringName, Variant> constant_map;
@@ -400,7 +412,7 @@ private:
 	int _methods_count = 0;
 	int _lambdas_count = 0;
 
-	int *_code_ptr = nullptr;
+	const int *_code_ptr = nullptr;
 	const int *_default_arg_ptr = nullptr;
 	mutable Variant *_constants_ptr = nullptr;
 	const StringName *_global_names_ptr = nullptr;

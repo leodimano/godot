@@ -79,6 +79,7 @@ class GDScriptByteCodeGenerator : public GDScriptCodeGenerator {
 	GDScriptFunction *function = nullptr;
 
 	Vector<int> opcodes;
+	int operator_cache_count = 0;
 	List<RBMap<StringName, int>> stack_id_stack;
 	RBMap<StringName, int> stack_identifiers;
 	List<int> stack_identifiers_counts;
