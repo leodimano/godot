@@ -93,9 +93,10 @@ class GDScriptByteCodeGenerator : public GDScriptCodeGenerator {
 	HashSet<int> temporaries_pending_clear;
 	RBMap<Variant::Type, List<int>> temporaries_pool;
 
-	List<GDScriptFunction::StackDebug> stack_debug;
-	List<RBMap<StringName, int>> block_identifier_stack;
-	RBMap<StringName, int> block_identifiers;
+	Vector<GDScriptFunction::StackDebug> stack_debug;
+	// Scope-exit debug events must not depend on StringName allocation addresses.
+	List<RBMap<StringName, int, StringName::AlphCompare>> block_identifier_stack;
+	RBMap<StringName, int, StringName::AlphCompare> block_identifiers;
 
 	int max_locals = 0;
 	int current_line = 0;
@@ -183,7 +184,7 @@ class GDScriptByteCodeGenerator : public GDScriptCodeGenerator {
 		stack_identifiers_counts.push_back(locals.size());
 		stack_id_stack.push_back(stack_identifiers);
 		if (GDScriptLanguage::get_singleton()->should_track_locals()) {
-			RBMap<StringName, int> block_ids(block_identifiers);
+			RBMap<StringName, int, StringName::AlphCompare> block_ids(block_identifiers);
 			block_identifier_stack.push_back(block_ids);
 			block_identifiers.clear();
 		}

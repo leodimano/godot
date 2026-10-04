@@ -366,7 +366,7 @@ private:
 	SelfList<GDScriptFunction> function_list{ this };
 	mutable Variant nil;
 	TightLocalVector<Pair<int, Variant::Type>> temporary_slots;
-	List<StackDebug> stack_debug;
+	Vector<StackDebug> stack_debug;
 
 	Vector<int> code;
 	// Per-function execution state is not part of the immutable instruction image.

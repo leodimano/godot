@@ -44,6 +44,11 @@ namespace GDScriptTests {
 
 class TestGDScriptFunctionAccessor {
 public:
+	static void set_stack_debug(GDScriptFunction *p_function, GDScript *p_owner, const Vector<GDScriptFunction::StackDebug> &p_events) {
+		p_function->_script = p_owner;
+		p_function->stack_debug = p_events;
+	}
+
 	static bool has_valid_instruction_layout(const GDScriptFunction *p_function) {
 		return GDScriptBytecodeInstructions::validate_layout(p_function->code, p_function->_instruction_args_size, p_function->default_arguments);
 	}
@@ -110,6 +115,35 @@ static func equal(left, right):
 	const GDScriptFunction *equal = script->get_member_functions()[SNAME("equal")];
 	CHECK(TestGDScriptFunctionAccessor::first_signature(equal) == 1); // NIL/NIL is cached, not mistaken for uninitialized.
 	CHECK(DirAccess::remove_absolute(path) == OK);
+}
+
+TEST_CASE("[GDScript][Bytecode] Contiguous debug events preserve nested local scopes") {
+	Ref<GDScript> owner;
+	owner.instantiate();
+	GDScriptFunction function;
+	Vector<GDScriptFunction::StackDebug> events;
+	events.push_back({ 1, 3, true, SNAME("value") });
+	events.push_back({ 2, 4, true, SNAME("other") });
+	events.push_back({ 3, 5, true, SNAME("value") });
+	events.push_back({ 4, 5, false, SNAME("value") });
+	events.push_back({ 5, 4, false, SNAME("other") });
+	events.push_back({ 6, 3, false, SNAME("value") });
+	TestGDScriptFunctionAccessor::set_stack_debug(&function, owner.ptr(), events);
+	events.clear(); // The function retains its own COW reference.
+	for (int line = 1; line <= 7; line++) {
+		List<Pair<StringName, int>> locals;
+		function.debug_get_stack_member_state(line, &locals);
+		const int expected_count = (line == 1 || line == 7) ? 0 : ((line == 2 || line == 6) ? 1 : 2);
+		REQUIRE(locals.size() == expected_count);
+		if (expected_count > 0) {
+			CHECK(locals.front()->get().first == SNAME("value"));
+			CHECK(locals.front()->get().second == (line == 4 ? 5 : 3));
+		}
+		if (expected_count == 2) {
+			CHECK(locals.back()->get().first == SNAME("other"));
+			CHECK(locals.back()->get().second == 4);
+		}
+	}
 }
 
 } // namespace GDScriptTests
