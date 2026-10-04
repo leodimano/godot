@@ -82,24 +82,19 @@ Compatibility and current boundaries
 Focused validation
 ------------------
 
-The current schema-v2 executable validation covers standard Windows x86_64 and
-Linux x86_64 Debug/Release templates, and single-threaded Web wasm32 Debug/Release
-templates in Chromium. Each executes the same fixture in both uncompressed and
-Zstandard modes, exported by a Windows x86_64 editor. Web execution specifically
-checks a 64-bit compiler host producing code for a 32-bit runtime; Linux execution
-also checks that the serialized graph is independent of the host OS/toolchain.
+The current schema-v2 executable validation covers standard Windows x86_64,
+Windows x86_32 and Linux x86_64 Debug/Release templates, and single-threaded Web
+wasm32 Debug/Release templates in Chromium. Each executes the same fixture in both
+uncompressed and Zstandard modes, exported by a Windows x86_64 editor. Windows
+x86_32 and Web execution check a 64-bit compiler host producing code for a 32-bit
+runtime; Linux execution also checks that the serialized graph is independent of
+the host OS/toolchain.
 
 On Android ARM64, a standard Debug template has passed the source-free remote
 debugger fixture on a physical device, including stepping and local/member
 inspection with zero source-pipeline entries. A standard Release template has
 passed the shared runtime fixture with Zstandard compression on the same device.
 These are focused engine fixtures, not a new full-application validation.
-
-A Windows x86_32 Debug build with MSVC 2022 executes the uncompressed fixture
-and reports zero source-pipeline entries, but is not counted as a passing target:
-startup emits native string-formatting errors. The same errors reproduce in an
-exported project containing no scripts. The cause of those diagnostics remains
-unresolved; the strict runtime harness deliberately continues to reject them.
 
 Platform and architecture coverage is distinct from format portability. Other
 architectures, threaded/GDExtension Web variants, compiler-free templates with
