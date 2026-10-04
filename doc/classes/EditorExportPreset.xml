@@ -195,5 +195,8 @@
 		</constant>
 		<constant name="MODE_SCRIPT_BINARY_TOKENS_COMPRESSED" value="2" enum="ScriptExportMode">
 		</constant>
+		<constant name="MODE_SCRIPT_COMPILED" value="3" enum="ScriptExportMode">
+			Exports a precompiled GDScript VM bundle and logical script remaps instead of source or tokens. Requires templates built from the same engine sources, with matching pointer width, precision and Debug or Release profile. Missing dependencies and embedded scripts fail export rather than falling back to source compilation. The format is engine-version-specific; its integrity checks do not authenticate downloaded code.
+		</constant>
 	</constants>
 </class>

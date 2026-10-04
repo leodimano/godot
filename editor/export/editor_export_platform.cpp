@@ -40,6 +40,7 @@
 #include "core/io/file_access_pack.h" // PACK_HEADER_MAGIC, PACK_FORMAT_VERSION
 #include "core/io/image.h"
 #include "core/io/image_loader.h"
+#include "core/io/json.h"
 #include "core/io/resource_loader.h"
 #include "core/io/resource_saver.h"
 #include "core/io/resource_uid.h"
@@ -64,15 +65,36 @@
 #include "scene/resources/packed_scene.h"
 #include "scene/resources/texture.h"
 
+#include "modules/modules_enabled.gen.h"
+#ifdef MODULE_GDSCRIPT_ENABLED
+#include "modules/gdscript/editor/gdscript_export_bundle.h"
+#endif
+
 class EditorExportSaveProxy {
 	HashSet<String> saved_paths;
 	EditorExportPlatform::EditorExportSaveFunction save_func;
 	bool tracking_saves = false;
+#ifdef MODULE_GDSCRIPT_ENABLED
+	GDScriptExportBundle *compiled_bundle = nullptr;
+#endif
 
 public:
 	bool has_saved(const String &p_path) const { return saved_paths.has(p_path); }
+#ifdef MODULE_GDSCRIPT_ENABLED
+	void set_compiled_bundle(GDScriptExportBundle *p_bundle) { compiled_bundle = p_bundle; }
+#endif
 
 	Error save_file(const Ref<EditorExportPreset> &p_preset, void *p_userdata, const String &p_path, const Vector<uint8_t> &p_data, int p_file, int p_total, const Vector<String> &p_enc_in_filters, const Vector<String> &p_enc_ex_filters, const Vector<uint8_t> &p_key, uint64_t p_seed, bool p_delta) {
+#ifdef MODULE_GDSCRIPT_ENABLED
+		if (compiled_bundle) {
+			bool skip = false;
+			Error error = compiled_bundle->collect_file(p_path, p_data, skip);
+			ERR_FAIL_COND_V_MSG(error != OK, error, compiled_bundle->get_failure());
+			if (skip) {
+				return OK;
+			}
+		}
+#endif
 		if (tracking_saves) {
 			saved_paths.insert(p_path.simplify_path().trim_prefix("res://"));
 		}
@@ -1405,6 +1427,15 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 	}
 
 	EditorExportSaveProxy save_proxy(p_save_func, p_remove_func != nullptr);
+	const bool compiled_scripts = p_preset->get_script_export_mode() == EditorExportPreset::MODE_SCRIPT_COMPILED;
+#ifdef MODULE_GDSCRIPT_ENABLED
+	GDScriptExportBundle compiled_bundle;
+	if (compiled_scripts) {
+		save_proxy.set_compiled_bundle(&compiled_bundle);
+	}
+#else
+	ERR_FAIL_COND_V_MSG(compiled_scripts, ERR_UNAVAILABLE, "This editor has no GDScript compiler.");
+#endif
 
 	Error err = OK;
 	Vector<Ref<EditorExportPlugin>> export_plugins = EditorExport::get_singleton()->get_export_plugins();
@@ -1761,6 +1792,25 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 		return err;
 	}
 
+#ifdef MODULE_GDSCRIPT_ENABLED
+	if (compiled_scripts) {
+		err = compiled_bundle.finish(paths, path_remaps, p_debug, int(p_preset->get("script/compiled_compression")));
+		ERR_FAIL_COND_V_MSG(err != OK, err, compiled_bundle.get_failure());
+		save_proxy.set_compiled_bundle(nullptr);
+		if (!compiled_bundle.get_bytecode().is_empty()) {
+			err = save_proxy.save_file(p_preset, p_udata, GDScriptExportBundle::BUNDLE_PATH, compiled_bundle.get_bytecode(), idx, total, enc_in_filters, enc_ex_filters, key, seed, false);
+			if (err != OK) {
+				return err;
+			}
+		}
+		Vector<uint8_t> manifest = JSON::stringify(compiled_bundle.get_manifest(), "\t", true).to_utf8_buffer();
+		err = save_proxy.save_file(p_preset, p_udata, GDScriptExportBundle::MANIFEST_PATH, manifest, idx, total, enc_in_filters, enc_ex_filters, key, seed, false);
+		if (err != OK) {
+			return err;
+		}
+	}
+#endif
+
 	//save config!
 
 	Vector<String> custom_list;
@@ -1798,6 +1848,11 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 		}
 	}
 
+#ifdef MODULE_GDSCRIPT_ENABLED
+	if (compiled_scripts) {
+		save_proxy.set_compiled_bundle(&compiled_bundle);
+	}
+#endif
 	const FilteredCache filtered_cache = _get_filtered_cache(paths);
 
 	Vector<String> forced_export = get_forced_export_files(p_preset);

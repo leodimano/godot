@@ -98,7 +98,7 @@ protected:
 	}
 
 	virtual void _export_file(const String &p_path, const String &p_type, const HashSet<String> &p_features) override {
-		if (p_path.get_extension() != "gd" || script_mode == EditorExportPreset::MODE_SCRIPT_TEXT) {
+		if (p_path.get_extension() != "gd" || script_mode == EditorExportPreset::MODE_SCRIPT_TEXT || script_mode == EditorExportPreset::MODE_SCRIPT_COMPILED) {
 			return;
 		}
 
@@ -118,6 +118,10 @@ protected:
 	}
 
 public:
+	virtual void _get_export_options(const Ref<EditorExportPlatform> &p_export_platform, List<EditorExportPlatform::ExportOption> *r_options) const override {
+		r_options->push_back(EditorExportPlatform::ExportOption(PropertyInfo(Variant::INT, "script/compiled_compression", PROPERTY_HINT_ENUM, "None,Zstandard"), 1));
+	}
+
 	virtual String get_name() const override { return "GDScript"; }
 };
 
