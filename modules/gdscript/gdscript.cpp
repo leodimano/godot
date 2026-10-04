@@ -2239,31 +2239,34 @@ void GDScriptLanguage::finish() {
 
 	// Clear dependencies between scripts, to ensure cyclic references are broken
 	// (to avoid leaks at exit).
-	SelfList<GDScript> *s = script_list.first();
-	while (s) {
-		// This ensures the current script is not released before we can check
-		// what's the next one in the list (we can't get the next upfront because we
-		// don't know if the reference breaking will cause it -or any other after
-		// it, for that matter- to be released so the next one is not the same as
-		// before).
-		Ref<GDScript> scr = s->self();
-		if (scr.is_valid()) {
-			for (KeyValue<StringName, GDScriptFunction *> &E : scr->member_functions) {
-				GDScriptFunction *func = E.value;
-				for (int i = 0; i < func->argument_types.size(); i++) {
-					func->argument_types.write[i].script_type_ref = Ref<Script>();
-				}
-				func->return_type.script_type_ref = Ref<Script>();
+	Ref<GDScript> scr;
+	if (script_list.first()) {
+		scr = script_list.first()->self();
+	}
+	while (scr.is_valid()) {
+		for (KeyValue<StringName, GDScriptFunction *> &E : scr->member_functions) {
+			GDScriptFunction *func = E.value;
+			for (int i = 0; i < func->argument_types.size(); i++) {
+				func->argument_types.write[i].script_type_ref = Ref<Script>();
 			}
-			for (KeyValue<StringName, GDScript::MemberInfo> &E : scr->member_indices) {
-				E.value.data_type.script_type_ref = Ref<Script>();
-			}
-
-			// Clear backup for scripts that could slip out of the cyclic reference
-			// check
-			scr->clear();
+			func->return_type.script_type_ref = Ref<Script>();
 		}
-		s = s->next();
+		for (KeyValue<StringName, GDScript::MemberInfo> &E : scr->member_indices) {
+			E.value.data_type.script_type_ref = Ref<Script>();
+		}
+
+		// Clear backup for scripts that could slip out of the cyclic reference
+		// check.
+		scr->clear();
+
+		// A cleared script can still own its base. Keep the next entry alive
+		// while releasing the current one, whose destruction may otherwise free
+		// that next list node and prematurely end traversal of the remaining graph.
+		Ref<GDScript> next_script;
+		if (scr->script_list.next()) {
+			next_script = scr->script_list.next()->self();
+		}
+		scr = next_script;
 	}
 	script_list.clear();
 	function_list.clear();
