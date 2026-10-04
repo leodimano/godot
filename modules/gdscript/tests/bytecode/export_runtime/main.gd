@@ -29,6 +29,13 @@ func check_portable_values():
 	var transform := Transform2D(0.0, position)
 	var point := Vector2(float(packed.size()), 1.0)
 	check(transform * point == Vector2(5.0, 5.0), "runtime math constructor and operator")
+	# Runtime operands keep the exporter from folding native formatting checks.
+	var format_values: Array = ["value", packed.size()]
+	check("%s/layer_%d" % format_values == "value/layer_2", "sequential format indices")
+	check("%2$d %1$s" % format_values == "2 value", "positional format indices")
+	check("%2$d %s %d" % format_values == "2 value 2", "mixed format indices")
+	var width_values: Array = [6, packed.size(), position.x - 0.75]
+	check("%*.*f" % width_values == "  2.25", "dynamic format width and precision")
 
 func _ready():
 	check_portable_values()
