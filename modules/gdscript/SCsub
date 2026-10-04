@@ -1,10 +1,33 @@
 #!/usr/bin/env python
 from misc.utility.scons_hints import *
 
+import gdscript_bytecode_builders
+
 Import("env")
 Import("env_modules")
 
 env_gdscript = env_modules.Clone()
+
+# Host and target use the same source identity, independent of CPU or whether
+# the target includes the source compiler. Native bindings are checked at load.
+compatibility_sources = Glob("*.cpp") + Glob("*.h") + Glob("#core/variant/*.cpp") + Glob("#core/variant/*.h")
+compatibility_sources += Glob("editor/gdscript_bytecode_*.cpp") + Glob("editor/gdscript_bytecode_*.h")
+compatibility_sources = [source for source in compatibility_sources if ".gen." not in source.name]
+compatibility_sources += [
+    File("#core/math/math_defs.h"),
+    File("#version.py"),
+    File("SCsub"),
+    File("gdscript_bytecode_builders.py"),
+]
+compatibility_fingerprint = gdscript_bytecode_builders.fingerprint_files([
+    source.abspath for source in compatibility_sources
+])
+# A Value dependency avoids a C/C++ include-scanner cycle through this header.
+env.CommandNoCache(
+    "gdscript_bytecode_compatibility.gen.h",
+    env.Value(compatibility_fingerprint),
+    env.Run(gdscript_bytecode_builders.make_compatibility_header),
+)
 
 env_gdscript.add_source_files(env.modules_sources, "*.cpp")
 

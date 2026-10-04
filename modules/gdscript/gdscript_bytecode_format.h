@@ -35,6 +35,9 @@
 // Shared disk-format limits. These describe serialized data, not native layouts.
 namespace GDScriptBytecodeFormat {
 
+// Metadata schema identity is separate from VM source and native API identity.
+inline constexpr const char *SCHEMA_ID = "godot-gdscript-bytecode-v1";
+
 inline constexpr uint32_t IMAGE_MAGIC = 0x49424447; // GDBI, little endian.
 inline constexpr uint32_t IMAGE_VERSION = 3;
 inline constexpr uint32_t IMAGE_HEADER_SIZE = 24;
