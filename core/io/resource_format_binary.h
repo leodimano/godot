@@ -104,6 +104,7 @@ public:
 	String recognize_script_class(Ref<FileAccess> p_f);
 	void get_dependencies(Ref<FileAccess> p_f, List<String> *p_dependencies, bool p_add_types);
 	void get_classes_used(Ref<FileAccess> p_f, HashSet<StringName> *p_classes);
+	Error get_resource_manifest(Ref<FileAccess> p_f, Dictionary &r_manifest);
 };
 
 class ResourceFormatLoaderBinary : public ResourceFormatLoader {

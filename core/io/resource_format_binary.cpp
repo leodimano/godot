@@ -736,7 +736,9 @@ Error ResourceLoaderBinary::load() {
 
 		if (r) {
 			if (!path.is_empty()) {
-				if (cache_mode != ResourceFormatLoader::CACHE_MODE_IGNORE) {
+				if (cache_mode == ResourceFormatLoader::CACHE_MODE_REUSE) {
+					ResourceLoader::_cache_resource_if_missing(res, path);
+				} else if (cache_mode != ResourceFormatLoader::CACHE_MODE_IGNORE) {
 					r->set_path(path, cache_mode == ResourceFormatLoader::CACHE_MODE_REPLACE); // If got here because the resource with same path has different type, replace it.
 				} else {
 					r->set_path_cache(path);
@@ -886,6 +888,53 @@ void ResourceLoaderBinary::get_classes_used(Ref<FileAccess> p_f, HashSet<StringN
 			p_classes->insert(t);
 		}
 	}
+}
+
+Error ResourceLoaderBinary::get_resource_manifest(Ref<FileAccess> p_f, Dictionary &r_manifest) {
+	r_manifest.clear();
+	if (p_f.is_null()) {
+		return ERR_INVALID_PARAMETER;
+	}
+	// Read only the resource tables and internal type headers. Never instantiate
+	// resources, resolve external dependencies, or evaluate embedded scripts.
+	open(p_f, false, true);
+	if (error != OK) {
+		return error;
+	}
+	Array internals;
+	for (const IntResource &entry : internal_resources) {
+		// Use the logical (possibly decompressed) stream, not the original file.
+		const uint64_t length = f->get_length();
+		if (entry.offset > length || length - entry.offset < sizeof(uint32_t)) {
+			return ERR_FILE_CORRUPT;
+		}
+		f->seek(entry.offset);
+		const uint32_t type_length = f->get_32();
+		if (type_length == 0 || type_length > length - f->get_position()) {
+			return ERR_FILE_CORRUPT;
+		}
+		f->seek(entry.offset);
+		String resource_type = get_unicode_string();
+		if (f->get_error() != OK || resource_type.is_empty()) {
+			return ERR_FILE_CORRUPT;
+		}
+		Dictionary record;
+		record["path"] = entry.path;
+		record["type"] = resource_type;
+		internals.push_back(record);
+	}
+	Array externals;
+	for (const ExtResource &entry : external_resources) {
+		Dictionary record;
+		record["path"] = entry.path;
+		record["type"] = entry.type;
+		record["uid"] = entry.uid == ResourceUID::INVALID_ID ? String() : ResourceUID::get_singleton()->id_to_text(entry.uid);
+		externals.push_back(record);
+	}
+	r_manifest["root_type"] = type;
+	r_manifest["internal_resources"] = internals;
+	r_manifest["external_resources"] = externals;
+	return OK;
 }
 
 void ResourceLoaderBinary::get_dependencies(Ref<FileAccess> p_f, List<String> *p_dependencies, bool p_add_types) {

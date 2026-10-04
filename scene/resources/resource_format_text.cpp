@@ -782,9 +782,7 @@ Error ResourceLoaderText::load() {
 				// EOF, Done parsing.
 				error = OK;
 				if (cache_mode != ResourceFormatLoader::CACHE_MODE_IGNORE) {
-					if (!ResourceCache::has(res_path)) {
-						resource->set_path(res_path);
-					}
+					ResourceLoader::_cache_resource_if_missing(resource, res_path);
 					resource->set_as_translation_remapped(translation_remapped);
 				} else {
 					resource->set_path_cache(res_path);
@@ -885,9 +883,7 @@ Error ResourceLoaderText::load() {
 		//get it here
 		resource = packed_scene;
 		if (cache_mode != ResourceFormatLoader::CACHE_MODE_IGNORE) {
-			if (!ResourceCache::has(res_path)) {
-				packed_scene->set_path(res_path);
-			}
+			ResourceLoader::_cache_resource_if_missing(packed_scene, res_path);
 		} else {
 			packed_scene->get_state()->set_path(res_path);
 			packed_scene->set_path_cache(res_path);
