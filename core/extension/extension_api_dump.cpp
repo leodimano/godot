@@ -32,6 +32,7 @@
 
 #include "core/config/engine.h"
 #include "core/core_constants.h"
+#include "core/doc_data.h"
 #include "core/extension/gdextension_special_compat_hashes.h"
 #include "core/io/file_access.h"
 #include "core/io/json.h"
@@ -41,6 +42,9 @@
 
 #ifdef TOOLS_ENABLED
 #include "editor/doc/editor_help.h"
+#endif
+
+#ifdef DEBUG_ENABLED
 
 static String get_builtin_or_variant_type_name(const Variant::Type p_type) {
 	if (p_type == Variant::NIL) {
@@ -102,6 +106,15 @@ static String fix_doc_description(const String &p_bbcode) {
 }
 
 Dictionary GDExtensionAPIDump::generate_extension_api(bool p_include_docs) {
+	HashMap<String, DocData::ClassDoc> *doc_classes = nullptr;
+#ifdef TOOLS_ENABLED
+	if (p_include_docs) {
+		EditorHelp::generate_doc(false);
+		doc_classes = &EditorHelp::get_doc_data()->class_list;
+	}
+#else
+	ERR_FAIL_COND_V_MSG(p_include_docs, Dictionary(), "API documentation is only available in editor builds.");
+#endif
 	Dictionary api_dump;
 
 	{
@@ -481,10 +494,6 @@ Dictionary GDExtensionAPIDump::generate_extension_api(bool p_include_docs) {
 		api_dump["builtin_class_member_offsets"] = core_type_member_offsets;
 	}
 
-	if (p_include_docs) {
-		EditorHelp::generate_doc(false);
-	}
-
 	{
 		// Global enums and constants.
 		Array constants;
@@ -493,7 +502,7 @@ Dictionary GDExtensionAPIDump::generate_extension_api(bool p_include_docs) {
 
 		const DocData::ClassDoc *global_scope_doc = nullptr;
 		if (p_include_docs) {
-			global_scope_doc = EditorHelp::get_doc_data()->class_list.getptr("@GlobalScope");
+			global_scope_doc = doc_classes->getptr("@GlobalScope");
 			CRASH_COND_MSG(!global_scope_doc, "Could not find '@GlobalScope' in DocData.");
 		}
 
@@ -564,7 +573,7 @@ Dictionary GDExtensionAPIDump::generate_extension_api(bool p_include_docs) {
 
 		const DocData::ClassDoc *global_scope_doc = nullptr;
 		if (p_include_docs) {
-			global_scope_doc = EditorHelp::get_doc_data()->class_list.getptr("@GlobalScope");
+			global_scope_doc = doc_classes->getptr("@GlobalScope");
 			CRASH_COND_MSG(!global_scope_doc, "Could not find '@GlobalScope' in DocData.");
 		}
 
@@ -641,7 +650,7 @@ Dictionary GDExtensionAPIDump::generate_extension_api(bool p_include_docs) {
 
 			DocData::ClassDoc *builtin_doc = nullptr;
 			if (p_include_docs && d["name"] != "Nil") {
-				builtin_doc = EditorHelp::get_doc_data()->class_list.getptr(d["name"]);
+				builtin_doc = doc_classes->getptr(d["name"]);
 				CRASH_COND_MSG(!builtin_doc, vformat("Could not find '%s' in DocData.", d["name"]));
 			}
 
@@ -931,7 +940,7 @@ Dictionary GDExtensionAPIDump::generate_extension_api(bool p_include_docs) {
 
 			DocData::ClassDoc *class_doc = nullptr;
 			if (p_include_docs) {
-				class_doc = EditorHelp::get_doc_data()->class_list.getptr(class_name);
+				class_doc = doc_classes->getptr(class_name);
 				CRASH_COND_MSG(!class_doc, vformat("Could not find '%s' in DocData.", class_name));
 			}
 
@@ -1329,17 +1338,22 @@ Dictionary GDExtensionAPIDump::generate_extension_api(bool p_include_docs) {
 	return api_dump;
 }
 
-void GDExtensionAPIDump::generate_extension_json_file(const String &p_path, bool p_include_docs) {
+Error GDExtensionAPIDump::generate_extension_json_file(const String &p_path, bool p_include_docs) {
 	Dictionary api = generate_extension_api(p_include_docs);
+	ERR_FAIL_COND_V_MSG(api.is_empty(), ERR_INVALID_DATA, "Could not generate the GDExtension API.");
 	Ref<JSON> json;
 	json.instantiate();
 
 	String text = json->stringify(api, "\t", false) + "\n";
-	Ref<FileAccess> fa = FileAccess::open(p_path, FileAccess::WRITE);
-	ERR_FAIL_COND_MSG(fa.is_null(), vformat("Cannot open file '%s' for writing.", p_path));
-	fa->store_string(text);
+	Error err = OK;
+	Ref<FileAccess> fa = FileAccess::open(p_path, FileAccess::WRITE, &err);
+	ERR_FAIL_COND_V_MSG(fa.is_null(), err, vformat("Cannot open file '%s' for writing.", p_path));
+	ERR_FAIL_COND_V_MSG(!fa->store_string(text), ERR_FILE_CANT_WRITE, vformat("Cannot write GDExtension API to '%s'.", p_path));
+	fa->flush();
+	return fa->get_error();
 }
 
+#ifdef TOOLS_ENABLED
 static bool compare_value(const String &p_path, const String &p_field, const Variant &p_old_value, const Variant &p_new_value, bool p_allow_name_change) {
 	bool failed = false;
 	String path = p_path + "/" + p_field;
@@ -1691,3 +1705,4 @@ Error GDExtensionAPIDump::validate_extension_json_file(const String &p_path) {
 }
 
 #endif // TOOLS_ENABLED
+#endif // DEBUG_ENABLED

@@ -284,6 +284,9 @@ static int fixed_fps = -1;
 static MovieWriter *movie_writer = nullptr;
 static bool disable_vsync = false;
 static bool print_fps = false;
+#ifdef DEBUG_ENABLED
+static String extension_api_dump_path;
+#endif
 #ifdef TOOLS_ENABLED
 static bool editor_pseudolocalization = false;
 static bool dump_gdextension_interface = false;
@@ -696,6 +699,9 @@ void Main::print_help(const char *p_binary) {
 	print_help_option("--main-loop <main_loop_name>", "Run a MainLoop specified by its global class name.\n", CLI_OPTION_AVAILABILITY_TEMPLATE_UNSAFE);
 	print_help_option("--check-only", "Only parse for errors and quit (use with --script).\n", CLI_OPTION_AVAILABILITY_TEMPLATE_UNSAFE);
 #endif // defined(OVERRIDE_PATH_ENABLED)
+#ifdef DEBUG_ENABLED
+	print_help_option("--dump-extension-api-to <path>", "Write this build's GDExtension API to <path> and quit. Use a matching debug template to inspect a reduced runtime.\n", CLI_OPTION_AVAILABILITY_TEMPLATE_DEBUG);
+#endif
 #ifdef TOOLS_ENABLED
 	print_help_option("--import", "Starts the editor, waits for any resources to be imported, and then quits.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--export-release <preset> <path>", "Export the project in release mode using the given preset and output path. The preset name should match one defined in \"export_presets.cfg\".\n", CLI_OPTION_AVAILABILITY_EDITOR);
@@ -1567,6 +1573,22 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 					"To be able to use it, use the `target=template_debug` SCons option when compiling Godot.\n");
 			goto error;
 #endif // defined(DEBUG_ENABLED) || defined (TOOLS_ENABLED)
+		} else if (arg == "--dump-extension-api-to") {
+#ifdef DEBUG_ENABLED
+			if (!N || N->get().is_empty() || N->get().begins_with("--")) {
+				OS::get_singleton()->print("Missing GDExtension API output path, aborting.\n");
+				goto error;
+			}
+			extension_api_dump_path = N->get();
+			N = N->next();
+			cmdline_tool = true;
+#ifdef TOOLS_ENABLED
+			editor = true;
+#endif
+#else
+			ERR_PRINT("GDExtension API generation requires an editor or debug template build.");
+			goto error;
+#endif
 		} else if (arg == "--render-thread") { // render thread mode
 
 			if (N) {
@@ -4015,6 +4037,15 @@ int Main::start() {
 	OS::get_singleton()->benchmark_begin_measure("Startup", "Main::Start");
 
 	ERR_FAIL_COND_V(!_start_success, EXIT_FAILURE);
+
+#ifdef DEBUG_ENABLED
+	if (!extension_api_dump_path.is_empty()) {
+#ifdef TOOLS_ENABLED
+		Engine::get_singleton()->set_editor_hint(true);
+#endif
+		return GDExtensionAPIDump::generate_extension_json_file(extension_api_dump_path) == OK ? EXIT_SUCCESS : EXIT_FAILURE;
+	}
+#endif
 
 	bool has_icon = false;
 	String positional_arg;
