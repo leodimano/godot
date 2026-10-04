@@ -129,7 +129,7 @@ of newly exported bundles.
 Continuing on macOS
 ~~~~~~~~~~~~~~~~~~~
 
-Continue from ``feature/bytecode-portability`` in the Wild fork. Read the root
+Continue from ``main`` in the Wild fork. Read the root
 ``AGENTS.md`` and the pinned tooling references in the Windows validation record
 before selecting the Apple toolchain. Verify the Mac's architecture, Xcode and
 SDK versions against those release scripts before building matching editor and

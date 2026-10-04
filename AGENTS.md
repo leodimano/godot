@@ -34,6 +34,9 @@
 
 ## Working practices
 
+- Use `main` as the active integration and publication branch for this solo
+  project. Historical feature branches are not required to obtain the current
+  implementation. Preserve upstream comparison tags and history.
 - Run tests selected by the code change, not the entire game suite each time.
   Keep full logs on disk and report concise summaries or relevant failures.
 - Do not open new terminal windows or tabs. Use internal/hidden processes and
