@@ -26,7 +26,9 @@ func check_portable_values():
 	for index in 3:
 		dynamic += wide
 	check(dynamic == wide * 3, "runtime operator cache")
-	check(Transform2D(0.0, Vector2(2.0, 3.0)) * Vector2(1.0, 1.0) == Vector2(3.0, 4.0), "math constructor and operator")
+	var transform := Transform2D(0.0, position)
+	var point := Vector2(float(packed.size()), 1.0)
+	check(transform * point == Vector2(5.0, 5.0), "runtime math constructor and operator")
 
 func _ready():
 	check_portable_values()

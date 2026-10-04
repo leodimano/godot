@@ -48,9 +48,10 @@ def main():
     assert not args.wsl_distribution or (sys.platform == "win32" and args.platform == "linux")
     editor = str(args.editor.resolve())
     args.log_directory.mkdir(parents=True, exist_ok=True)
+    process_options = {"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}
 
     def run(label, command, success=True):
-        result = subprocess.run(command, capture_output=True, text=True, timeout=120)
+        result = subprocess.run(command, capture_output=True, text=True, timeout=120, **process_options)
         log = result.stdout + result.stderr
         (args.log_directory / f"{label}.log").write_text(log, encoding="utf-8")
         if success:
@@ -121,7 +122,7 @@ def main():
                 if args.wsl_distribution:
                     runner = ["wsl", "-d", args.wsl_distribution, "--exec"]
                     linux_path = subprocess.check_output(
-                        runner + ["wslpath", "-a", executable.as_posix()], text=True, timeout=15
+                        runner + ["wslpath", "-a", executable.as_posix()], text=True, timeout=15, **process_options
                     ).strip()
                     command = runner + [linux_path]
                 else:

@@ -12,6 +12,7 @@ import http.server
 import json
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 from pathlib import Path
@@ -44,9 +45,10 @@ def main():
     args.log_directory.mkdir(parents=True, exist_ok=False)
     editor = str(args.editor.resolve())
     results = []
+    process_options = {"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}
 
     def run(label, command):
-        result = subprocess.run(command, capture_output=True, text=True, timeout=180)
+        result = subprocess.run(command, capture_output=True, text=True, timeout=180, **process_options)
         log = result.stdout + result.stderr
         (args.log_directory / f"{label}.log").write_text(log, encoding="utf-8")
         diagnostics = [line for line in log.splitlines() if any(marker in line for marker in ("ERROR:", "WARNING:"))]
