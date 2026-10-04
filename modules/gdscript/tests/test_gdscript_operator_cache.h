@@ -30,6 +30,8 @@
 
 #pragma once
 
+#ifndef GDSCRIPT_NO_COMPILER
+
 #include "../gdscript.h"
 #include "../gdscript_bytecode_instructions.h"
 #include "../gdscript_function.h"
@@ -147,3 +149,5 @@ TEST_CASE("[GDScript][Bytecode] Contiguous debug events preserve nested local sc
 }
 
 } // namespace GDScriptTests
+
+#endif // GDSCRIPT_NO_COMPILER

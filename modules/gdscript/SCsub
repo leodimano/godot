@@ -29,7 +29,19 @@ env.CommandNoCache(
     env.Run(gdscript_bytecode_builders.make_compatibility_header),
 )
 
-env_gdscript.add_source_files(env.modules_sources, "*.cpp")
+sources = Glob("*.cpp")
+if not env["gdscript_compiler"]:
+    compiler_sources = {
+        "gdscript_analyzer.cpp",
+        "gdscript_byte_codegen.cpp",
+        "gdscript_compiler.cpp",
+        "gdscript_parser.cpp",
+        "gdscript_tokenizer.cpp",
+        "gdscript_tokenizer_buffer.cpp",
+        "gdscript_warning.cpp",
+    }
+    sources = [source for source in sources if source.name not in compiler_sources]
+env_gdscript.add_source_files(env.modules_sources, sources)
 
 if env.editor_build:
     env_gdscript.add_source_files(env.modules_sources, "./editor/*.cpp")
@@ -47,7 +59,7 @@ if env.editor_build:
         env.Append(CPPDEFINES=["GDSCRIPT_NO_LSP"])
 
 
-if env["tests"]:
+if env["tests"] and env["gdscript_compiler"]:
     # TODO: Handle test creation magic without needing to pass macro.
     env_gdscript.Append(CPPDEFINES=["TESTS_ENABLED"])
     env_gdscript.add_source_files(env.modules_sources, "./tests/*.cpp")

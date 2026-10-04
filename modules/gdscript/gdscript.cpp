@@ -30,14 +30,16 @@
 
 #include "gdscript.h"
 
-#include "gdscript_analyzer.h"
 #include "gdscript_cache.h"
 #include "gdscript_compilation_context.h"
+#include "gdscript_rpc_callable.h"
+#ifndef GDSCRIPT_NO_COMPILER
+#include "gdscript_analyzer.h"
 #include "gdscript_compiler.h"
 #include "gdscript_parser.h"
-#include "gdscript_rpc_callable.h"
 #include "gdscript_tokenizer_buffer.h"
 #include "gdscript_warning.h"
+#endif
 
 #include "core/io/resource_loader.h"
 #include "core/object/callable_mp.h"
@@ -47,7 +49,7 @@
 #include "editor/gdscript_docgen.h"
 #endif
 
-#ifdef TESTS_ENABLED
+#if defined(TESTS_ENABLED) && !defined(GDSCRIPT_NO_COMPILER)
 #include "tests/gdscript_test_runner.h"
 #endif
 
@@ -445,6 +447,9 @@ String GDScript::get_source_code() const {
 }
 
 void GDScript::set_source_code(const String &p_code) {
+#ifdef GDSCRIPT_NO_COMPILER
+	ERR_FAIL_COND_MSG(!p_code.is_empty(), "GDScript source compilation is disabled in this template.");
+#else
 	if (source == p_code) {
 		return;
 	}
@@ -452,6 +457,7 @@ void GDScript::set_source_code(const String &p_code) {
 #ifdef TOOLS_ENABLED
 	source_changed_cache = true;
 #endif
+#endif // GDSCRIPT_NO_COMPILER
 }
 
 #ifdef TOOLS_ENABLED
@@ -736,6 +742,10 @@ void GDScript::_restore_old_static_data() {
 #endif
 
 Error GDScript::reload(bool p_keep_state) {
+#ifdef GDSCRIPT_NO_COMPILER
+	// Reject without clearing an already loaded compiled generation.
+	return ERR_UNAVAILABLE;
+#else
 	if (reloading) {
 		return OK;
 	}
@@ -902,6 +912,7 @@ Error GDScript::reload(bool p_keep_state) {
 
 	reloading = false;
 	return OK;
+#endif // GDSCRIPT_NO_COMPILER
 }
 
 ScriptLanguage *GDScript::get_language() const {
@@ -1125,6 +1136,9 @@ String GDScript::get_script_path() const {
 }
 
 Error GDScript::load_source_code(const String &p_path) {
+#ifdef GDSCRIPT_NO_COMPILER
+	return ERR_UNAVAILABLE;
+#else
 	if (p_path.is_empty() || p_path.begins_with("gdscript://") || ResourceLoader::get_resource_type(p_path.get_slice("::", 0)) == "PackedScene") {
 		return OK;
 	}
@@ -1163,10 +1177,15 @@ Error GDScript::load_source_code(const String &p_path) {
 	set_last_modified_time(FileAccess::get_modified_time(path));
 #endif // TOOLS_ENABLED
 	return OK;
+#endif // GDSCRIPT_NO_COMPILER
 }
 
 void GDScript::set_binary_tokens_source(const Vector<uint8_t> &p_binary_tokens) {
+#ifdef GDSCRIPT_NO_COMPILER
+	ERR_FAIL_COND_MSG(!p_binary_tokens.is_empty(), "GDScript token compilation is disabled in this template.");
+#else
 	binary_tokens = p_binary_tokens;
+#endif
 }
 
 const Vector<uint8_t> &GDScript::get_binary_tokens_source() const {
@@ -1174,8 +1193,12 @@ const Vector<uint8_t> &GDScript::get_binary_tokens_source() const {
 }
 
 Vector<uint8_t> GDScript::get_as_binary_tokens() const {
+#ifdef GDSCRIPT_NO_COMPILER
+	return Vector<uint8_t>();
+#else
 	GDScriptTokenizerBuffer tokenizer;
 	return tokenizer.parse_code_string(source, GDScriptTokenizerBuffer::COMPRESS_NONE);
+#endif
 }
 
 const HashMap<StringName, GDScriptFunction *> &GDScript::debug_get_member_functions() const {
@@ -2186,14 +2209,14 @@ void GDScriptLanguage::init() {
 	}
 #endif // TOOLS_ENABLED
 
-#ifdef DEBUG_ENABLED
+#if defined(DEBUG_ENABLED) && !defined(GDSCRIPT_NO_COMPILER)
 	GDScriptParser::update_project_settings();
 	if (!ProjectSettings::get_singleton()->is_connected("settings_changed", callable_mp_static(&GDScriptParser::update_project_settings))) {
 		ProjectSettings::get_singleton()->connect("settings_changed", callable_mp_static(&GDScriptParser::update_project_settings));
 	}
 #endif // DEBUG_ENABLED
 
-#ifdef TESTS_ENABLED
+#if defined(TESTS_ENABLED) && !defined(GDSCRIPT_NO_COMPILER)
 	GDScriptTests::GDScriptTestRunner::handle_cmdline();
 #endif // TESTS_ENABLED
 }
@@ -2440,7 +2463,7 @@ struct GDScriptDepSort {
 };
 
 void GDScriptLanguage::reload_all_scripts() {
-#ifdef DEBUG_ENABLED
+#if defined(DEBUG_ENABLED) && !defined(GDSCRIPT_NO_COMPILER)
 	print_verbose("GDScript: Reloading all scripts");
 	Array scripts;
 	{
@@ -2474,7 +2497,7 @@ void GDScriptLanguage::reload_all_scripts() {
 }
 
 void GDScriptLanguage::reload_scripts(const Array &p_scripts, bool p_soft_reload) {
-#ifdef DEBUG_ENABLED
+#if defined(DEBUG_ENABLED) && !defined(GDSCRIPT_NO_COMPILER)
 
 	List<Ref<GDScript>> scripts;
 	{
@@ -2721,6 +2744,26 @@ String GDScriptLanguage::get_global_class_name(const String &p_path, String *r_b
 }
 
 String GDScriptLanguage::_get_global_class_name(const String &p_path, String *r_base_type, String *r_icon_path, bool *r_is_abstract, bool *r_is_tool, LocalVector<String> &r_visited) const {
+#ifdef GDSCRIPT_NO_COMPILER
+	// Runtime class discovery uses restored metadata, never source parsing.
+	Ref<GDScript> script = ResourceLoader::load(p_path);
+	if (script.is_null()) {
+		return String();
+	}
+	if (r_base_type) {
+		*r_base_type = script->get_instance_base_type();
+	}
+	if (r_icon_path) {
+		*r_icon_path = String();
+	}
+	if (r_is_abstract) {
+		*r_is_abstract = script->is_abstract();
+	}
+	if (r_is_tool) {
+		*r_is_tool = script->is_tool();
+	}
+	return script->get_global_name();
+#else
 	if (r_visited.has(p_path)) {
 		return String();
 	}
@@ -2835,6 +2878,7 @@ String GDScriptLanguage::_get_global_class_name(const String &p_path, String *r_
 		*r_is_tool = parser.is_tool();
 	}
 	return c->identifier != nullptr ? String(c->identifier->name) : String();
+#endif // GDSCRIPT_NO_COMPILER
 }
 
 thread_local GDScriptLanguage::CallLevel *GDScriptLanguage::_call_stack = nullptr;
@@ -2876,6 +2920,7 @@ GDScriptLanguage::GDScriptLanguage() {
 	_debug_max_call_stack = GLOBAL_DEF_RST(PropertyInfo(Variant::INT, "debug/settings/gdscript/max_call_stack", PROPERTY_HINT_RANGE, "512," + itos(GDScriptFunction::MAX_CALL_DEPTH - 1) + ",1"), 1024);
 	track_call_stack = GLOBAL_DEF_RST("debug/settings/gdscript/always_track_call_stacks", false);
 	track_locals = GLOBAL_DEF_RST("debug/settings/gdscript/always_track_local_variables", false);
+	GLOBAL_DEF("debug/gdscript/compiled_load_profile", false);
 
 #ifdef DEBUG_ENABLED
 	if (GDScriptCompilationContext::is_debug_compilation()) {
@@ -2884,6 +2929,7 @@ GDScriptLanguage::GDScriptLanguage() {
 		track_locals = track_locals || EngineDebugger::is_active() || GDScriptCompilationContext::is_compile_only();
 	}
 
+#ifndef GDSCRIPT_NO_COMPILER
 	GLOBAL_DEF("debug/gdscript/warnings/enable", true);
 
 	GLOBAL_DEF(PropertyInfo(Variant::DICTIONARY,
@@ -2908,6 +2954,7 @@ GDScriptLanguage::GDScriptLanguage() {
 	// TODO: This setting has nothing to do with warnings. It should be moved at the next compatibility breakage,
 	// if the setting is still relevant at that time.
 	GLOBAL_DEF("debug/gdscript/warnings/renamed_in_godot_4_hint", true);
+#endif // GDSCRIPT_NO_COMPILER
 #endif // DEBUG_ENABLED
 }
 

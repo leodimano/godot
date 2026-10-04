@@ -29,9 +29,11 @@
 /**************************************************************************/
 
 #include "gdscript.h"
+#ifndef GDSCRIPT_NO_COMPILER
 #include "gdscript_analyzer.h"
 #include "gdscript_parser.h"
 #include "gdscript_tokenizer.h"
+#endif
 #include "gdscript_utility_functions.h"
 
 #ifdef TOOLS_ENABLED
@@ -77,10 +79,17 @@ Vector<String> GDScriptLanguage::get_string_delimiters() const {
 }
 
 bool GDScriptLanguage::is_using_templates() {
+#ifdef GDSCRIPT_NO_COMPILER
+	return false;
+#else
 	return true;
+#endif
 }
 
 Ref<Script> GDScriptLanguage::make_template(const String &p_template, const String &p_class_name, const String &p_base_class_name) const {
+#ifdef GDSCRIPT_NO_COMPILER
+	return Ref<Script>();
+#else
 	Ref<GDScript> scr;
 	scr.instantiate();
 
@@ -117,6 +126,7 @@ Ref<Script> GDScriptLanguage::make_template(const String &p_template, const Stri
 	scr->set_source_code(processed_template);
 
 	return scr;
+#endif
 }
 
 Vector<ScriptLanguage::ScriptTemplate> GDScriptLanguage::get_built_in_templates(const StringName &p_object) {
@@ -131,6 +141,7 @@ Vector<ScriptLanguage::ScriptTemplate> GDScriptLanguage::get_built_in_templates(
 	return templates;
 }
 
+#ifndef GDSCRIPT_NO_COMPILER
 static void get_function_names_recursively(const GDScriptParser::ClassNode *p_class, const String &p_prefix, HashMap<int, String> &r_funcs) {
 	for (int i = 0; i < p_class->members.size(); i++) {
 		if (p_class->members[i].type == GDScriptParser::ClassNode::Member::FUNCTION) {
@@ -143,7 +154,12 @@ static void get_function_names_recursively(const GDScriptParser::ClassNode *p_cl
 	}
 }
 
+#endif
+
 bool GDScriptLanguage::validate(const String &p_script, const String &p_path, List<String> *r_functions, List<ScriptLanguage::ScriptError> *r_errors, List<ScriptLanguage::Warning> *r_warnings, HashSet<int> *r_safe_lines) const {
+#ifdef GDSCRIPT_NO_COMPILER
+	return false;
+#else
 	GDScriptParser parser;
 	GDScriptAnalyzer analyzer(&parser);
 
@@ -212,6 +228,7 @@ bool GDScriptLanguage::validate(const String &p_script, const String &p_path, Li
 #endif
 
 	return true;
+#endif // GDSCRIPT_NO_COMPILER
 }
 
 bool GDScriptLanguage::supports_builtin_mode() const {
@@ -223,6 +240,7 @@ bool GDScriptLanguage::supports_documentation() const {
 }
 
 int GDScriptLanguage::find_function(const String &p_function, const String &p_code) const {
+#ifndef GDSCRIPT_NO_COMPILER
 	GDScriptTokenizerText tokenizer;
 	tokenizer.set_source_code(p_code);
 	int indent = 0;
@@ -244,6 +262,7 @@ int GDScriptLanguage::find_function(const String &p_function, const String &p_co
 		}
 		current = tokenizer.scan();
 	}
+#endif
 	return -1;
 }
 
@@ -394,7 +413,7 @@ void GDScriptLanguage::debug_get_globals(List<String> *p_globals, List<Variant> 
 	get_public_constants(&cinfo);
 
 	for (const KeyValue<StringName, int> &E : name_idx) {
-		if (GDScriptAnalyzer::class_exists(E.key) || Engine::get_singleton()->has_singleton(E.key)) {
+		if ((ClassDB::class_exists(E.key) && ClassDB::is_class_exposed(E.key)) || Engine::get_singleton()->has_singleton(E.key)) {
 			continue;
 		}
 
@@ -515,6 +534,7 @@ void GDScriptLanguage::get_public_constants(List<Pair<String, Variant>> *p_const
 }
 
 void GDScriptLanguage::get_public_annotations(List<MethodInfo> *p_annotations) const {
+#ifndef GDSCRIPT_NO_COMPILER
 	GDScriptParser parser;
 	List<MethodInfo> annotations;
 	parser.get_annotation_list(&annotations);
@@ -522,6 +542,7 @@ void GDScriptLanguage::get_public_annotations(List<MethodInfo> *p_annotations) c
 	for (const MethodInfo &E : annotations) {
 		p_annotations->push_back(E);
 	}
+#endif
 }
 
 String GDScriptLanguage::make_function(const String &p_class, const String &p_name, const PackedStringArray &p_args) const {

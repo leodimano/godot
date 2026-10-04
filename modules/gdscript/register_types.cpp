@@ -32,10 +32,12 @@
 
 #include "gdscript.h"
 #include "gdscript_cache.h"
-#include "gdscript_parser.h"
 #include "gdscript_resource_format.h"
-#include "gdscript_tokenizer_buffer.h"
 #include "gdscript_utility_functions.h"
+#ifndef GDSCRIPT_NO_COMPILER
+#include "gdscript_parser.h"
+#include "gdscript_tokenizer_buffer.h"
+#endif
 
 #ifdef TOOLS_ENABLED
 #include "editor/gdscript_export_compiler.h"
@@ -49,7 +51,7 @@
 #endif
 #endif // TOOLS_ENABLED
 
-#ifdef TESTS_ENABLED
+#if defined(TESTS_ENABLED) && !defined(GDSCRIPT_NO_COMPILER)
 #include "tests/test_gdscript.h"
 #endif
 
@@ -202,7 +204,9 @@ void uninitialize_gdscript_module(ModuleInitializationLevel p_level) {
 		ResourceSaver::remove_resource_format_saver(resource_saver_gd);
 		resource_saver_gd.unref();
 
+#ifndef GDSCRIPT_NO_COMPILER
 		GDScriptParser::cleanup();
+#endif
 		GDScriptUtilityFunctions::unregister_functions();
 	}
 
@@ -217,7 +221,7 @@ void uninitialize_gdscript_module(ModuleInitializationLevel p_level) {
 #endif // TOOLS_ENABLED
 }
 
-#ifdef TESTS_ENABLED
+#if defined(TESTS_ENABLED) && !defined(GDSCRIPT_NO_COMPILER)
 void test_tokenizer() {
 	GDScriptTests::test(GDScriptTests::TestType::TEST_TOKENIZER);
 }

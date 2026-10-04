@@ -538,6 +538,9 @@
 			Specifies the maximum number of log files allowed (used for rotation). Set to [code]1[/code] to disable log file rotation.
 			If the [code]--log-file &lt;file&gt;[/code] [url=$DOCS_URL/tutorials/editor/command_line_tutorial.html]command line argument[/url] is used, log rotation is always disabled.
 		</member>
+		<member name="debug/gdscript/compiled_load_profile" type="bool" setter="" getter="" default="false">
+			If [code]true[/code], logs structured timing and inventory information for precompiled GDScript bundle loads in Debug builds. Includes the cumulative number of source compilation entries so compiled-only loading can be verified. Has no effect in Release builds.
+		</member>
 		<member name="debug/gdscript/warnings/assert_always_false" type="int" setter="" getter="" default="1">
 			When set to [b]Warn[/b] or [b]Error[/b], produces a warning or an error respectively when an [code]assert[/code] call always evaluates to [code]false[/code].
 		</member>

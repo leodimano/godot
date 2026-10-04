@@ -3,8 +3,21 @@ def can_build(env, platform):
     return True
 
 
+def get_opts(platform):
+    from SCons.Variables import BoolVariable
+
+    return [
+        BoolVariable("gdscript_compiler", "Include GDScript source/token compilation (required by the editor)", True)
+    ]
+
+
 def configure(env):
-    pass
+    if not env["gdscript_compiler"]:
+        if env.editor_build:
+            raise ValueError(
+                "The editor requires gdscript_compiler=yes; use a runtime template for compiled-only GDScript."
+            )
+        env.Append(CPPDEFINES=["GDSCRIPT_NO_COMPILER"])
 
 
 def get_doc_classes():

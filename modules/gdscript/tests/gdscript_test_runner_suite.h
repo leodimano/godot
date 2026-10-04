@@ -30,6 +30,8 @@
 
 #pragma once
 
+#ifndef GDSCRIPT_NO_COMPILER
+
 #include "../gdscript_cache.h"
 #include "gdscript_test_runner.h"
 
@@ -142,3 +144,5 @@ TEST_CASE("[Modules][GDScript] Validate built-in API") {
 }
 
 } // namespace GDScriptTests
+
+#endif // GDSCRIPT_NO_COMPILER

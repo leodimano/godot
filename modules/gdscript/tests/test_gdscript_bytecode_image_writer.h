@@ -30,6 +30,8 @@
 
 #pragma once
 
+#ifdef TOOLS_ENABLED
+
 #include "../editor/gdscript_bytecode_image_writer.h"
 #include "../gdscript_bytecode_image.h"
 #include "../gdscript_bytecode_view.h"
@@ -165,3 +167,5 @@ TEST_CASE("[GDScript][Bytecode] Metadata writer rejects unsupported and recursiv
 }
 
 } // namespace TestGDScriptBytecodeImageWriter
+
+#endif // TOOLS_ENABLED

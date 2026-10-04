@@ -31,14 +31,17 @@
 #include "gdscript_cache.h"
 
 #include "gdscript.h"
+#ifndef GDSCRIPT_NO_COMPILER
 #include "gdscript_analyzer.h"
 #include "gdscript_compiler.h"
 #include "gdscript_parser.h"
+#endif
 
 #include "core/io/file_access.h"
 #include "core/io/resource_loader.h"
 #include "core/templates/vector.h"
 
+#ifndef GDSCRIPT_NO_COMPILER
 GDScriptParserRef::Status GDScriptParserRef::get_status() const {
 	return status;
 }
@@ -147,6 +150,8 @@ GDScriptParserRef::~GDScriptParserRef() {
 	}
 }
 
+#endif // GDSCRIPT_NO_COMPILER
+
 GDScriptCache *GDScriptCache::singleton = nullptr;
 
 SafeBinaryMutex<GDScriptCache::BINARY_MUTEX_TAG> &_get_gdscript_cache_mutex() {
@@ -168,7 +173,9 @@ void GDScriptCache::move_script(const String &p_from, const String &p_to) {
 		return;
 	}
 
+#ifndef GDSCRIPT_NO_COMPILER
 	remove_parser(p_from);
+#endif
 
 	if (singleton->shallow_gdscript_cache.has(p_from) && !p_from.is_empty()) {
 		singleton->shallow_gdscript_cache[p_to] = singleton->shallow_gdscript_cache[p_from];
@@ -192,6 +199,7 @@ void GDScriptCache::remove_script(const String &p_path) {
 		return;
 	}
 
+#ifndef GDSCRIPT_NO_COMPILER
 	if (HashMap<String, Vector<ObjectID>>::Iterator E = singleton->abandoned_parser_map.find(p_path)) {
 		for (ObjectID parser_ref_id : E->value) {
 			Ref<GDScriptParserRef> parser_ref = { ObjectDB::get_instance(parser_ref_id) };
@@ -208,12 +216,14 @@ void GDScriptCache::remove_script(const String &p_path) {
 	}
 
 	remove_parser(p_path);
+#endif
 
 	singleton->dependencies.erase(p_path);
 	singleton->shallow_gdscript_cache.erase(p_path);
 	singleton->full_gdscript_cache.erase(p_path);
 }
 
+#ifndef GDSCRIPT_NO_COMPILER
 Ref<GDScriptParserRef> GDScriptCache::get_parser(const String &p_path, GDScriptParserRef::Status p_status, Error &r_error, const String &p_owner) {
 	MutexLock lock(singleton->mutex);
 	Ref<GDScriptParserRef> ref;
@@ -406,6 +416,8 @@ finish:
 	return script;
 }
 
+#endif // GDSCRIPT_NO_COMPILER
+
 Ref<GDScript> GDScriptCache::get_cached_script(const String &p_path) {
 	MutexLock lock(singleton->mutex);
 
@@ -426,6 +438,7 @@ void GDScriptCache::add_compiled_script(const Ref<GDScript> &p_script) {
 	singleton->full_gdscript_cache[p_script->get_script_path()] = p_script;
 }
 
+#ifndef GDSCRIPT_NO_COMPILER
 Error GDScriptCache::finish_compiling(const String &p_owner) {
 	MutexLock lock(singleton->mutex);
 
@@ -452,6 +465,8 @@ Error GDScriptCache::finish_compiling(const String &p_owner) {
 	return err;
 }
 
+#endif // GDSCRIPT_NO_COMPILER
+
 void GDScriptCache::add_static_script(Ref<GDScript> p_script) {
 	ERR_FAIL_COND_MSG(p_script.is_null(), "Trying to cache empty script as static.");
 	ERR_FAIL_COND_MSG(!p_script->is_valid(), "Trying to cache non-compiled script as static.");
@@ -474,6 +489,7 @@ void GDScriptCache::clear() {
 	}
 	singleton->cleared = true;
 
+#ifndef GDSCRIPT_NO_COMPILER
 	singleton->parser_inverse_dependencies.clear();
 
 	for (const KeyValue<String, Vector<ObjectID>> &KV : singleton->abandoned_parser_map) {
@@ -501,6 +517,7 @@ void GDScriptCache::clear() {
 	}
 
 	parser_map_refs.clear();
+#endif
 	singleton->shallow_gdscript_cache.clear();
 	singleton->full_gdscript_cache.clear();
 	singleton->static_gdscript_cache.clear();

@@ -30,6 +30,8 @@
 
 #pragma once
 
+#ifdef TOOLS_ENABLED
+
 #include "../gdscript_bytecode_envelope.h"
 
 #include "core/io/file_access_memory.h"
@@ -156,3 +158,5 @@ TEST_CASE("[GDScript][Bytecode] Bounded file reads") {
 }
 
 } // namespace TestGDScriptBytecodeEnvelope
+
+#endif // TOOLS_ENABLED

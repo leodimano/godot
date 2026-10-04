@@ -4,9 +4,9 @@
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import subprocess
 import tempfile
+from pathlib import Path
 
 
 def main():
@@ -14,7 +14,7 @@ def main():
     parser.add_argument("editor", type=Path)
     args = parser.parse_args()
     project = Path(__file__).resolve().parent / "export_compiler"
-    source_hash = hashlib.sha256((project / "subject.gd").read_text(encoding="utf-8").encode()).hexdigest()
+    source_hash = hashlib.sha256((project / "subject.gd").read_bytes()).hexdigest()
     with tempfile.TemporaryDirectory(prefix="godot-export-compiler-") as temporary:
         output = Path(temporary)
         for debug, valid_hash in [(True, True), (False, True), (True, False)]:

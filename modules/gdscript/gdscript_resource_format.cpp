@@ -32,7 +32,9 @@
 
 #include "gdscript_bytecode_reader.h"
 #include "gdscript_cache.h"
+#ifndef GDSCRIPT_NO_COMPILER
 #include "gdscript_parser.h"
+#endif
 
 #include "core/io/file_access.h"
 #include "core/object/class_db.h"
@@ -56,6 +58,12 @@ Ref<Resource> ResourceFormatLoaderGDScript::load(const String &p_path, const Str
 		}
 		return script;
 	}
+#ifdef GDSCRIPT_NO_COMPILER
+	if (r_error) {
+		*r_error = ERR_UNAVAILABLE;
+	}
+	ERR_FAIL_V_MSG(Ref<Resource>(), "GDScript source/token loading is disabled in this template: " + p_original_path);
+#else
 	Error err;
 	bool ignoring = p_cache_mode == CACHE_MODE_IGNORE || p_cache_mode == CACHE_MODE_IGNORE_DEEP;
 	Ref<GDScript> scr = GDScriptCache::get_full_script(p_original_path, err, "", ignoring);
@@ -71,6 +79,7 @@ Ref<Resource> ResourceFormatLoaderGDScript::load(const String &p_path, const Str
 	}
 
 	return scr;
+#endif // GDSCRIPT_NO_COMPILER
 }
 
 void ResourceFormatLoaderGDScript::get_recognized_extensions(List<String> *p_extensions) const {
@@ -92,6 +101,7 @@ String ResourceFormatLoaderGDScript::get_resource_type(const String &p_path) con
 }
 
 void ResourceFormatLoaderGDScript::get_dependencies(const String &p_path, List<String> *p_dependencies, bool p_add_types) {
+#ifndef GDSCRIPT_NO_COMPILER
 	if (p_path.get_extension().to_lower() == "gdbc") {
 		// The exported bundle already contains its selected script graph.
 		return;
@@ -112,9 +122,11 @@ void ResourceFormatLoaderGDScript::get_dependencies(const String &p_path, List<S
 	for (const String &E : parser.get_dependencies()) {
 		p_dependencies->push_back(E);
 	}
+#endif
 }
 
 void ResourceFormatLoaderGDScript::get_classes_used(const String &p_path, HashSet<StringName> *r_classes) {
+#ifndef GDSCRIPT_NO_COMPILER
 	Ref<GDScript> scr = ResourceLoader::load(p_path);
 	if (scr.is_null()) {
 		return;
@@ -168,6 +180,7 @@ void ResourceFormatLoaderGDScript::get_classes_used(const String &p_path, HashSe
 
 		current = tokenizer.scan();
 	}
+#endif
 }
 
 Error ResourceFormatSaverGDScript::save(const Ref<Resource> &p_resource, const String &p_path, uint32_t p_flags) {

@@ -31,6 +31,8 @@
 #include "gdscript_bytecode_load_profile.h"
 
 #ifdef DEBUG_ENABLED
+#include "gdscript_compilation_context.h"
+
 #include "core/config/project_settings.h"
 #include "core/io/json.h"
 #include "core/os/os.h"
@@ -169,6 +171,7 @@ GDScriptBytecodeLoadProfile::~GDScriptBytecodeLoadProfile() {
 		report["hydration_phases_usec"] = hydration_phases;
 		report["hydration_operations"] = hydration_operations;
 		report["functions"] = functions;
+		report["source_pipeline_entries"] = GDScriptCompilationContext::get_source_pipeline_entries();
 		report["total_usec"] = int64_t(finished - started);
 		print_line("GDSCRIPT_BYTECODE_LOAD " + JSON::stringify(report));
 	}

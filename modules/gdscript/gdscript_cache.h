@@ -37,6 +37,7 @@
 #include "core/templates/hash_map.h"
 #include "core/templates/hash_set.h"
 
+#ifndef GDSCRIPT_NO_COMPILER
 class GDScriptAnalyzer;
 class GDScriptParser;
 
@@ -77,6 +78,7 @@ public:
 	GDScriptParserRef() {}
 	~GDScriptParserRef();
 };
+#endif
 
 namespace GDScriptTests {
 class TestGDScriptCacheAccessor;
@@ -84,8 +86,10 @@ class TestGDScriptCacheAccessor;
 
 class GDScriptCache {
 	// String key is full path.
+#ifndef GDSCRIPT_NO_COMPILER
 	HashMap<String, GDScriptParserRef *> parser_map;
 	HashMap<String, Vector<ObjectID>> abandoned_parser_map;
+#endif
 	HashMap<String, Ref<GDScript>> shallow_gdscript_cache;
 	HashMap<String, Ref<GDScript>> full_gdscript_cache;
 	HashMap<String, Ref<GDScript>> static_gdscript_cache;
@@ -111,6 +115,7 @@ private:
 public:
 	static void move_script(const String &p_from, const String &p_to);
 	static void remove_script(const String &p_path);
+#ifndef GDSCRIPT_NO_COMPILER
 	static Ref<GDScriptParserRef> get_parser(const String &p_path, GDScriptParserRef::Status status, Error &r_error, const String &p_owner = String());
 	static bool has_parser(const String &p_path);
 	static void remove_parser(const String &p_path);
@@ -123,9 +128,12 @@ public:
 	 * The returned instance is present in GDScriptCache and ResourceCache.
 	 */
 	static Ref<GDScript> get_full_script(const String &p_path, Error &r_error, const String &p_owner = String(), bool p_update_from_disk = false);
+#endif
 	static Ref<GDScript> get_cached_script(const String &p_path);
 	static void add_compiled_script(const Ref<GDScript> &p_script);
+#ifndef GDSCRIPT_NO_COMPILER
 	static Error finish_compiling(const String &p_owner);
+#endif
 	static void add_static_script(Ref<GDScript> p_script);
 	static void remove_static_script(const String &p_fqcn);
 
