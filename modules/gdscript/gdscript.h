@@ -84,6 +84,7 @@ class GDScript : public Script {
 	friend class GDScriptAnalyzer;
 	friend class GDScriptCompiler;
 	friend class GDScriptCompilationContext;
+	friend class GDScriptBytecodeWriter;
 	friend class GDScriptDocGen;
 	friend class GDScriptLambdaCallable;
 	friend class GDScriptLambdaSelfCallable;
