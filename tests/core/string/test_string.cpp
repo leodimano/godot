@@ -873,6 +873,15 @@ TEST_CASE("[String] format") {
 	CHECK(value == "red=\"10\" green=\"20\" blue=\"bla\" alpha=\"0.4\"");
 }
 
+TEST_CASE("[String] vformat argument selection") {
+	CHECK(vformat("WorkerThread %d", 7) == "WorkerThread 7");
+	CHECK(vformat("%s/layer_%d", "rendering", 4) == "rendering/layer_4");
+	CHECK(vformat("%2$d %1$s", "value", 7) == "7 value");
+	CHECK(vformat("%2$d %s %d", "value", 7) == "7 value 7");
+	CHECK(vformat("%*.*f", 6, 2, 1.25) == "  1.25");
+	CHECK(vformat("%c %x %o", 65, 31, 9) == "A 1f 11");
+}
+
 TEST_CASE("[String] sprintf") {
 	String format, output;
 	Array args;
