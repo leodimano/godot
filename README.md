@@ -6,6 +6,16 @@
   </a>
 </p>
 
+## Fork baseline
+
+This fork is based on **Godot 4.7.2-stable**, upstream commit
+[`ed1daf0bf001b61586d9930840f2f1394092c079`](https://github.com/godotengine/godot/commit/ed1daf0bf001b61586d9930840f2f1394092c079).
+That release is our pinned comparison baseline; `master` contains our engine changes.
+
+[Compare our changes against Godot 4.7.2](https://github.com/godotengine/godot/compare/ed1daf0bf001b61586d9930840f2f1394092c079...leodimano:master).
+Use this comparison to review the fork's changes, rather than comparing against
+the upstream development branch, `godotengine/godot:master`.
+
 ## 2D and 3D cross-platform game engine
 
 **[Godot Engine](https://godotengine.org) is a feature-packed, cross-platform
