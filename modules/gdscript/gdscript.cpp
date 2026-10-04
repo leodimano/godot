@@ -32,6 +32,7 @@
 
 #include "gdscript_analyzer.h"
 #include "gdscript_cache.h"
+#include "gdscript_compilation_context.h"
 #include "gdscript_compiler.h"
 #include "gdscript_parser.h"
 #include "gdscript_rpc_callable.h"
@@ -809,6 +810,7 @@ Error GDScript::reload(bool p_keep_state) {
 #endif
 
 	valid = false;
+	GDScriptCompilationContext::record_source_pipeline_entry();
 	GDScriptParser parser;
 	Error err;
 	if (!binary_tokens.is_empty()) {
@@ -879,7 +881,8 @@ Error GDScript::reload(bool p_keep_state) {
 	}
 #endif
 
-	if (can_run) {
+	GDScriptCompilationContext::record_initialization_order(this);
+	if (can_run && !GDScriptCompilationContext::is_compile_only()) {
 		err = _static_init();
 		if (err) {
 			return err;
@@ -2872,8 +2875,11 @@ GDScriptLanguage::GDScriptLanguage() {
 	track_locals = GLOBAL_DEF_RST("debug/settings/gdscript/always_track_local_variables", false);
 
 #ifdef DEBUG_ENABLED
-	track_call_stack = true;
-	track_locals = track_locals || EngineDebugger::is_active();
+	if (GDScriptCompilationContext::is_debug_compilation()) {
+		track_call_stack = true;
+		// Offline debug exports need local symbols without a connected debugger.
+		track_locals = track_locals || EngineDebugger::is_active() || GDScriptCompilationContext::is_compile_only();
+	}
 
 	GLOBAL_DEF("debug/gdscript/warnings/enable", true);
 

@@ -34,6 +34,7 @@
 #include "gdscript_analyzer.h"
 #include "gdscript_byte_codegen.h"
 #include "gdscript_cache.h"
+#include "gdscript_compilation_context.h"
 #include "gdscript_utility_functions.h"
 
 #include "core/config/engine.h"
@@ -2180,6 +2181,9 @@ Error GDScriptCompiler::_parse_block(CodeGen &codegen, const GDScriptParser::Sui
 			} break;
 			case GDScriptParser::Node::ASSERT: {
 #ifdef DEBUG_ENABLED
+				if (!GDScriptCompilationContext::is_debug_compilation()) {
+					break; // Release must not evaluate either assertion expression.
+				}
 				const GDScriptParser::AssertNode *as = static_cast<const GDScriptParser::AssertNode *>(s);
 
 				GDScriptCodeGenerator::Address condition = _parse_expression(codegen, err, as->condition);
@@ -2207,7 +2211,9 @@ Error GDScriptCompiler::_parse_block(CodeGen &codegen, const GDScriptParser::Sui
 			} break;
 			case GDScriptParser::Node::BREAKPOINT: {
 #ifdef DEBUG_ENABLED
-				gen->write_breakpoint();
+				if (GDScriptCompilationContext::is_debug_compilation()) {
+					gen->write_breakpoint();
+				}
 #endif
 			} break;
 			case GDScriptParser::Node::VARIABLE: {
@@ -2464,7 +2470,7 @@ GDScriptFunction *GDScriptCompiler::_parse_function(Error &r_error, GDScript *p_
 	}
 
 #ifdef DEBUG_ENABLED
-	if (EngineDebugger::is_active()) {
+	if (EngineDebugger::is_active() || GDScriptCompilationContext::is_compile_only()) {
 		String signature;
 		// Path.
 		if (!p_script->get_script_path().is_empty()) {
@@ -2632,7 +2638,7 @@ GDScriptFunction *GDScriptCompiler::_make_static_initializer(Error &r_error, GDS
 	}
 
 #ifdef DEBUG_ENABLED
-	if (EngineDebugger::is_active()) {
+	if (EngineDebugger::is_active() || GDScriptCompilationContext::is_compile_only()) {
 		String signature;
 		// Path.
 		if (!p_script->get_script_path().is_empty()) {
@@ -3312,7 +3318,8 @@ Error GDScriptCompiler::compile(const GDScriptParser *p_parser, GDScript *p_scri
 	_get_function_ptr_replacements(func_ptr_replacements, old_lambda_info, &new_lambda_info);
 	main_script->_recurse_replace_function_ptrs(func_ptr_replacements);
 
-	if (has_static_data && !root->annotated_static_unload) {
+	main_script->retain_static_data = has_static_data && !root->annotated_static_unload;
+	if (main_script->retain_static_data && !GDScriptCompilationContext::is_compile_only()) {
 		GDScriptCache::add_static_script(p_script);
 	}
 

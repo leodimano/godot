@@ -83,6 +83,7 @@ class GDScript : public Script {
 	friend class GDScriptFunction;
 	friend class GDScriptAnalyzer;
 	friend class GDScriptCompiler;
+	friend class GDScriptCompilationContext;
 	friend class GDScriptDocGen;
 	friend class GDScriptLambdaCallable;
 	friend class GDScriptLambdaSelfCallable;
@@ -179,6 +180,8 @@ private:
 	String source;
 	Vector<uint8_t> binary_tokens;
 	String path;
+	uint64_t compilation_initialization_order = 0;
+	bool retain_static_data = false;
 	bool path_valid = false; // False if using default path.
 	StringName local_name; // Inner class identifier or `class_name`.
 	StringName global_name; // `class_name`.
