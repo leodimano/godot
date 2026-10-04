@@ -59,8 +59,9 @@ Compatibility and current boundaries
   stack storage and operator caches are created by the target. Loading requires
   matching VM source identity, schema, real-number precision and build profile,
   but not matching host and target pointer widths. Native classes and method
-  signatures are validated against the target. Version 1 bundles must be exported
-  again with a matching editor and templates.
+  signatures are validated against the target. This feature is unreleased; no
+  backward-compatibility or migration contract is provided for development
+  artifacts. Re-export them with a matching editor and templates.
 * The bundle includes the selected runtime script graph. Scene and resource
   references use ordinary logical script paths remapped to that bundle.
   Scripts loaded dynamically must also be included by the export preset.
@@ -81,12 +82,31 @@ Compatibility and current boundaries
 Focused validation
 ------------------
 
-The current executable validation covers Windows x86_64 standard Debug and
-Release templates, plus an optional compiler-free Debug template. Android ARM64
-standard Release has also executed a complete application's startup and first
-race; a standard Debug fixture has exercised the remote debugger on a physical
-device. iOS execution and Android compiler-free templates remain unvalidated on
-this port; previous reference-build results do not establish that coverage.
+The current schema-v2 executable validation covers standard Windows x86_64 and
+Linux x86_64 Debug/Release templates, and single-threaded Web wasm32 Debug/Release
+templates in Chromium. Each executes the same fixture in both uncompressed and
+Zstandard modes, exported by a Windows x86_64 editor. Web execution specifically
+checks a 64-bit compiler host producing code for a 32-bit runtime; Linux execution
+also checks that the serialized graph is independent of the host OS/toolchain.
+
+On Android ARM64, a standard Debug template has passed the source-free remote
+debugger fixture on a physical device, including stepping and local/member
+inspection with zero source-pipeline entries. A standard Release template has
+passed the shared runtime fixture with Zstandard compression on the same device.
+These are focused engine fixtures, not a new full-application validation.
+
+A Windows x86_32 Debug build with MSVC 2022 executes the uncompressed fixture
+and reports zero source-pipeline entries, but is not counted as a passing target:
+startup emits native string-formatting errors. The same errors reproduce in an
+exported project containing no scripts. The cause of those diagnostics remains
+unresolved; the strict runtime harness deliberately continues to reject them.
+
+Platform and architecture coverage is distinct from format portability. Other
+architectures, threaded/GDExtension Web variants, compiler-free templates with
+this schema, and macOS/iOS still require their own execution coverage. A build
+failure in a platform's dependencies does not establish a bytecode failure or a
+passing runtime test. Previous reference-build results do not establish coverage
+of newly exported bundles.
 
 The C++ tests under ``modules/gdscript/tests`` cover storage, metadata,
 instruction layout, writer/reader behavior, shared identities, compatibility
@@ -99,9 +119,35 @@ exercise the isolated worker and ordinary executable exports::
 
 The executable-export fixture covers a scene script, autoload, static
 initializer, typed constant, closure, inner class, RPC and scripted resource.
-It checks the PCK directory for absent source/token files, executes both storage
-modes, and rejects an excluded script dependency. It runs in a temporary project
-copy, leaving the developer's projects unchanged.
+It also exercises 64-bit integer values, typed dictionaries, native properties,
+runtime math constructors and operator caches. It checks the PCK directory for
+absent source/token files, verifies the runtime's architecture, executes both
+storage modes, and rejects an excluded script dependency. It runs in a temporary
+project copy, leaving the developer's projects unchanged.
+
+For another Windows architecture, pass ``--architecture x86_32`` or
+``--architecture arm64`` with matching templates. The host must be able to run
+that executable; cross-compiling alone does not validate execution.
+
+For Linux, pass ``--platform linux`` and the target architecture. A Windows
+editor can also export to Linux and execute the fixture through WSL: copy the
+Linux templates to a Windows-accessible directory, then run::
+
+    python modules/gdscript/tests/bytecode/test_export_runtime.py <windows-editor> --platform linux --architecture x86_64 --wsl-distribution Ubuntu --debug-template <linux-debug-template> --release-template <linux-release-template> --log-directory <new-directory>
+
+The Web harness requires Playwright for Python and a Chromium installation. It
+exports through the normal Web preset, serves the temporary output on loopback,
+and runs the same fixture in a headless browser. It preserves export and browser
+logs, verifies that the PCK contains no source/token scripts, and checks for zero
+source-pipeline entries in Debug. With single-threaded ``wasm32`` templates::
+
+    python modules/gdscript/tests/bytecode/test_export_web.py <editor> --debug-template <web-debug.zip> --release-template <web-release.zip> --browser <chromium-executable> --log-directory <new-directory>
+
+Omit ``--browser`` to use Playwright's installed Chromium. For threaded templates,
+add ``--threads``; the test server supplies the required isolation headers. The
+harness does not use the developer's browser profile or modify the game project.
+Selecting a variant is not evidence of support: record only combinations that
+have actually built and executed successfully.
 
 The debugger test exports the ``debug_runtime`` fixture, checks that the package
 contains no source/token scripts, and starts a loopback debugger peer. It checks
@@ -126,6 +172,15 @@ in that application's device log. Scope diagnostics to its process; a different
 application may log while being suspended. Remove only the test's own port
 forwarding and test package afterward. This checks the wire protocol, not the
 editor debugger UI or source hot reload.
+
+For a focused Android Release check, copy ``export_runtime`` into a scratch
+project, add a project icon, and use a separate application ID with a matching
+Release template. Set ``command_line/extra_args`` to ``--xr-mode off -- --verify``
+for this non-XR fixture. The explicit XR mode also avoids an existing Android
+startup lookup of ``xr/shaders/enabled`` before its default is registered. Require
+a source-free APK and ``COMPILED_EXPORT_RESULT`` with ``compiled=true``, the
+expected architecture and an empty ``failures`` array. Retain device diagnostics
+and remove only the test package afterward.
 
 For Debug profiling, enable Project Settings > Debug > GDScript >
 Compiled Load Profile. Each load emits one ``GDSCRIPT_BYTECODE_LOAD`` JSON record
