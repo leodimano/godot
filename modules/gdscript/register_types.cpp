@@ -38,6 +38,7 @@
 #include "gdscript_utility_functions.h"
 
 #ifdef TOOLS_ENABLED
+#include "editor/gdscript_export_compiler.h"
 #include "editor/gdscript_highlighter.h"
 #include "editor/gdscript_translation_parser_plugin.h"
 #include "editor/script/script_editor_plugin.h"
@@ -155,6 +156,11 @@ void initialize_gdscript_module(ModuleInitializationLevel p_level) {
 
 #ifdef TOOLS_ENABLED
 	if (p_level == MODULE_INITIALIZATION_LEVEL_SERVERS) {
+		// Host command only. It must not become a native API in exported graphs.
+		const ClassDB::APIType previous_api = ClassDB::get_current_api();
+		ClassDB::set_current_api(ClassDB::API_NONE);
+		GDREGISTER_CLASS(GDScriptExportCompiler);
+		ClassDB::set_current_api(previous_api);
 		EditorNode::add_init_callback(_editor_init);
 
 		gdscript_translation_parser_plugin.instantiate();

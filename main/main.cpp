@@ -4347,7 +4347,7 @@ int Main::start() {
 	}
 
 #ifdef TOOLS_ENABLED
-	if (!editor && !project_manager && !cmdline_tool && script.is_empty() && game_path.is_empty()) {
+	if (!editor && !project_manager && !cmdline_tool && script.is_empty() && game_path.is_empty() && main_loop_type.is_empty()) {
 		// If we end up here, it means we didn't manage to detect what we want to run.
 		// Let's throw an error gently. The code leading to this is pretty brittle so
 		// this might end up triggered by valid usage, in which case we'll have to
