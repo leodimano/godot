@@ -82,19 +82,38 @@ Compatibility and current boundaries
 Focused validation
 ------------------
 
-The current schema-v2 executable validation covers standard Windows x86_64,
-Windows x86_32 and Linux x86_64 Debug/Release templates, and single-threaded Web
-wasm32 Debug/Release templates in Chromium. Each executes the same fixture in both
-uncompressed and Zstandard modes, exported by a Windows x86_64 editor. Windows
-x86_32 and Web execution check a 64-bit compiler host producing code for a 32-bit
-runtime; Linux execution also checks that the serialized graph is independent of
-the host OS/toolchain.
+Release qualification must use the version-matched official
+`build containers <https://github.com/godotengine/build-containers/tree/4.7>`_
+and `release build scripts <https://github.com/godotengine/godot-build-scripts/tree/4.7>`_,
+including their toolchains, dependencies, production options and packaging.
+Record the exact tooling commits and container identities for each qualification
+run. A supported local build or upstream CI configuration is not a substitute.
+Official-container release qualification is pending.
+
+The release-tooling references inspected for this baseline are
+``build-containers`` commit ``3f3cc50c3f91c2be66e37aece9d9a57284e39db7`` and
+``godot-build-scripts`` commit ``63625f75c0f869dea4a01811522e10fefcd0f322``.
+They are reference inputs, not evidence that a release build has executed.
+
+Development validation of schema-v2 exports has covered Windows x86_64 and
+Linux x86_64 Debug/Release templates, and single-threaded Web wasm32 Debug/Release
+templates in Chromium. Each executed the same fixture in both uncompressed and
+Zstandard modes, exported by a Windows x86_64 editor. Web execution checked a
+64-bit compiler host producing code for a 32-bit runtime; Linux execution also
+checked independence from the host OS/toolchain.
+
+Earlier Windows x86_32 MSVC Debug/Release checks passed with a native string
+formatter workaround. That unrelated workaround has been removed to preserve
+the upstream formatter. Those historical results do not qualify the current
+source: Windows x86_32 must be validated using the official MinGW/GCC setup.
 
 On Android ARM64, a standard Debug template has passed the source-free remote
 debugger fixture on a physical device, including stepping and local/member
 inspection with zero source-pipeline entries. A standard Release template has
 passed the shared runtime fixture with Zstandard compression on the same device.
-These are focused engine fixtures, not a new full-application validation.
+These are focused development fixtures, not release qualification or a new
+full-application validation. The local Android and Web toolchain versions also
+differed from the version-matched official build containers.
 
 Platform and architecture coverage is distinct from format portability. Other
 architectures, threaded/GDExtension Web variants, compiler-free templates with
