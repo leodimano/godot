@@ -1,0 +1,14 @@
+config_version=5
+
+[application]
+config/name="Compiled GDScript debugger fixture"
+config/icon="res://icon.svg"
+run/main_scene="res://main.tscn"
+
+[debug]
+gdscript/compiled_load_profile=true
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true

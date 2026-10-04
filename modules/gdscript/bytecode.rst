@@ -36,8 +36,9 @@ Debug exports preserve script paths, line numbers and local-variable metadata.
 Release exports omit debug-only code such as assertions and breakpoints.
 Use a template with the corresponding Debug or Release profile. Source reload
 is not supported for an already loaded compiled graph; restart to use a new
-generation. Remote-debugger behavior on each target platform still needs to be
-validated with that platform's template.
+generation. Remote breakpoint statements, stepping, stack paths/lines and
+local/member inspection have been exercised on Windows x86_64 and Android ARM64
+Debug exports. Other targets and debugger operations require their own coverage.
 
 Optional compiler-free templates
 --------------------------------
@@ -77,9 +78,11 @@ Focused validation
 ------------------
 
 The current executable validation covers Windows x86_64 standard Debug and
-Release templates, plus an optional compiler-free Debug template. Android and
-iOS template execution and device debugging have not yet been validated on this
-port; previous reference-build results do not establish that coverage.
+Release templates, plus an optional compiler-free Debug template. Android ARM64
+standard Release has also executed a complete application's startup and first
+race; a standard Debug fixture has exercised the remote debugger on a physical
+device. iOS execution and Android compiler-free templates remain unvalidated on
+this port; previous reference-build results do not establish that coverage.
 
 The C++ tests under ``modules/gdscript/tests`` cover storage, metadata,
 instruction layout, writer/reader behavior, shared identities, compatibility
@@ -88,12 +91,37 @@ exercise the isolated worker and ordinary executable exports::
 
     python modules/gdscript/tests/bytecode/test_export_compiler.py <editor>
     python modules/gdscript/tests/bytecode/test_export_runtime.py <editor> --debug-template <template> --release-template <template> --log-directory <directory>
+    python modules/gdscript/tests/bytecode/test_export_debugger.py <editor> --debug-template <windows-template> --log-directory <new-directory>
 
 The executable-export fixture covers a scene script, autoload, static
 initializer, typed constant, closure, inner class, RPC and scripted resource.
 It checks the PCK directory for absent source/token files, executes both storage
 modes, and rejects an excluded script dependency. It runs in a temporary project
 copy, leaving the developer's projects unchanged.
+
+The debugger test exports the ``debug_runtime`` fixture, checks that the package
+contains no source/token scripts, and starts a loopback debugger peer. It checks
+a breakpoint statement, two step-over commands, logical script paths and line
+numbers, local/member values, continuation and source-free runtime completion.
+The supplied log directory must be new; the exported fixture and all diagnostic
+logs are retained there. Only the test's own child processes are terminated.
+
+For Android, copy ``debug_runtime`` into a scratch project and export it through
+a normal Android Debug preset with precompiled scripts and a matching ARM64
+template. Use a separate application ID and set ``command_line/extra_args`` to
+``--remote-debug tcp://127.0.0.1:6036``. Enable the Internet permission. After
+installing this test-only APK, forward the device's port with
+``adb -s <serial> reverse tcp:6036 tcp:6036`` and start the same host::
+
+    <editor> --headless --path <scratch-project> --script <absolute-path>/debugger_host.gd -- 6036 <result.json>
+
+Launch the fixture after ``COMPILED_DEBUG_LISTENING`` appears. Require a passing
+host result, ``COMPILED_DEBUG_RESULT`` with ``compiled=true`` and ``value=43``,
+and a successful ``GDSCRIPT_BYTECODE_LOAD`` with ``source_pipeline_entries=0``
+in that application's device log. Scope diagnostics to its process; a different
+application may log while being suspended. Remove only the test's own port
+forwarding and test package afterward. This checks the wire protocol, not the
+editor debugger UI or source hot reload.
 
 For Debug profiling, enable Project Settings > Debug > GDScript >
 Compiled Load Profile. Each load emits one ``GDSCRIPT_BYTECODE_LOAD`` JSON record
