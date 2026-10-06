@@ -39,6 +39,13 @@ Repeat with minification disabled and with a plain native export path. The
 configuration check does not qualify an APK; retain package and device evidence
 for changes to the optimizer or its keep rules.
 
+Release exports with `enable_minification=true` enable both code and Android
+resource shrinking. AGP's optimized resource-shrinking pipeline and full R8
+mode remain at their supported defaults. Debug and non-minified template builds
+do not shrink resources. This does not compress or remove Godot's game assets,
+VM bundles or native libraries. Plugins that look up Android resources by name
+must supply appropriate resource keep rules, just as in an ordinary Android app.
+
 Migration references:
 
 - https://developer.android.com/build/releases/agp-9-0-0-release-notes

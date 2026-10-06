@@ -6,7 +6,7 @@ gradle.beforeProject { project ->
                 boolean minify = (project.findProperty('enable_minification') ?: 'false').toBoolean()
                 assert project.android.buildTypes.release.minifyEnabled == minify
                 assert !project.android.buildTypes.debug.minifyEnabled
-                assert !project.android.buildTypes.release.shrinkResources
+                assert project.android.buildTypes.release.shrinkResources == minify
                 assert !project.plugins.hasPlugin('org.jetbrains.kotlin.android')
                 assert project.android.compileOptions.targetCompatibility == JavaVersion.VERSION_17
                 String inputPath = project.findProperty('export_path') ?: '.'

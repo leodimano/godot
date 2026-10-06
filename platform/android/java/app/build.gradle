@@ -218,7 +218,8 @@ android {
 
         release {
             minifyEnabled shouldMinify()
-            shrinkResources false
+            // AGP integrates resource reachability with R8 when shrinking is enabled.
+            shrinkResources shouldMinify()
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
 
             // Signing and zip-aligning are skipped for prebuilt builds, but

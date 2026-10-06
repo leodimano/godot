@@ -10,7 +10,43 @@ separate. Each milestone records what changed, why, the evidence and its limits.
 Application measurements are configuration/device-specific, not general engine
 benchmarks. Missing measurements remain unmeasured.
 
+## 2026-10-06 — Optimized Android resource shrinking
+
+**Related commit:** `a63cae7c1b` (stable toolchain upgrade below).
+
+**Why:** Use AGP's supported combined code/resource reachability analysis for
+minified Release exports, without stripping native or script entry points.
+
+**Change:** Enable Android resource shrinking when Release minification is
+selected. Retain default full R8 mode, optimized resource shrinking and all
+Godot/JNI/plugin keep rules. Debug and non-minified builds remain unshrunk.
+
+**Results:** Fourteen resolved on/off configuration checks passed. Signed Debug,
+unsigned Release APK and Release AAB exports completed. The isolated Bike
+resource-shrinking comparison reduced the unsigned APK from **93,007,963** to
+**92,918,465 bytes**, removing 91 Android resource entries. Native libraries,
+compiled scripts and game textures are byte-identical. DEX changed from
+**1,112,304** to **1,112,540 bytes**; the gain is resource removal, not smaller
+DEX. The final test-signed APK is **93,328,704 bytes** and the unsigned AAB is
+**67,108,997 bytes** (different delivery representations, not a download claim).
+AAB checks verified the install-time asset pack, Release exclusions and exact
+native/compiled-script correspondence to the APK. The S23 exercised Home,
+retained progress, Desert touch acceleration and background/resume rendering.
+All four product Android plugins initialized; captured logs contain no script,
+JNI, missing-class/method or fatal Java exception from this check.
+
+**Limits:** The pre-existing suspend-save `Busy` failure remains a Bike issue;
+store/consent/backend configuration limitations remain. Vendor purchase/ad UI,
+Play delivery, iOS, Android editor/XR/.NET and full-game equivalence are not
+qualified. No new loading or memory measurements. The previous APK also differs
+in a semantically identical configuration document's formatting, so its entire
+size delta must not be attributed to AGP/R8. Artifacts, mapping hash and exact
+limitations are recorded in Bike's `android-toolchain-20261006` snapshot. No
+store upload, version bump or release tag was made.
+
 ## 2026-10-06 — Stable Android build-toolchain upgrade
+
+**Commit:** `a63cae7c1b`.
 
 **Why:** Adopt current stable Android compiler/optimizer fixes and supported SDK
 tooling while preserving the native engine, game assets and export contracts.
