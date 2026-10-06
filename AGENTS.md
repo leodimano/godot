@@ -43,3 +43,7 @@
   `--no-daemon` for Gradle.
 - Make small cohesive commits with explanatory bodies. Do not add release tags,
   version bumps, or compatibility migrations for unreleased development work.
+- Update `WILD_CHANGELOG.md` with each completed engine capability. Record the
+  date, related commits, motivation, behavior and verified results/limitations.
+  Keep upstream `CHANGELOG.md` intact. Separate measured application outcomes
+  from engine correctness checks; never turn pending validation into a result.

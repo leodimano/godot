@@ -10,11 +10,16 @@
 
 This fork is based on **Godot 4.7.2-stable**, upstream commit
 [`ed1daf0bf001b61586d9930840f2f1394092c079`](https://github.com/godotengine/godot/commit/ed1daf0bf001b61586d9930840f2f1394092c079).
-That release is our pinned comparison baseline; `master` contains our engine changes.
+That release is our pinned comparison baseline; `main` contains our engine changes.
 
-[Compare our changes against Godot 4.7.2](https://github.com/godotengine/godot/compare/ed1daf0bf001b61586d9930840f2f1394092c079...leodimano:master).
+[Compare our changes against Godot 4.7.2](https://github.com/godotengine/godot/compare/ed1daf0bf001b61586d9930840f2f1394092c079...leodimano:main).
 Use this comparison to review the fork's changes, rather than comparing against
 the upstream development branch, `godotengine/godot:master`.
+
+The [Wild changelog](WILD_CHANGELOG.md) records our timeline, reasons for each
+change, measured results and validation limits. [CHANGELOG.md](CHANGELOG.md)
+remains the upstream Godot changelog. Wild is unreleased; its planned first
+release label is `Godot 4.7.2 — Wild v0.1.0`.
 
 ## 2D and 3D cross-platform game engine
 
