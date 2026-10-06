@@ -10,6 +10,39 @@ separate. Each milestone records what changed, why, the evidence and its limits.
 Application measurements are configuration/device-specific, not general engine
 benchmarks. Missing measurements remain unmeasured.
 
+## 2026-10-06 — Safe temporaries for typed asynchronous overrides
+
+**Why:** Bike's Multiplayer refresh failed after awaiting an asynchronous
+implementation through a typed base contract. The failure reproduced both from
+source and in precompiled Android exports. The compiler allocated the immediate
+call result from the declared return type's temporary pool, although a coroutine
+returns a function-state object until it resumes. A later validated integer
+addition reused that slot and retained its Object type.
+
+**Change:** Allocate awaited call results as Variant temporaries. The separate
+await result remains typed, and ordinary synchronous calls retain their existing
+typed optimization. No game architecture workaround or bytecode format change.
+Rebuild matching editor/templates and re-export: their source compatibility
+identity changes with the compiler correction.
+
+**Results:** The new typed-override regression fails on the previous editor and
+passes after the fix. Six selected coroutine runtime fixtures pass (7 assertions).
+The shared source-free export fixture passes Windows x86_32 Debug/Release in
+None and Zstandard modes, using the same official MinGW release toolchain and
+options recorded in the Windows validation record. The isolated diagnostic
+editor additionally enables the upstream test runner. Bike's 39 lobby-service
+tests pass, including a newly suspended account-preparation case; the real
+source-mode refresh no longer raises a script exception. Matching Android ARM64
+Debug/Release templates build with the unchanged product Compatibility profile.
+The Debug APK passes package verification and reproduces the corrected lobby
+path on the S23 without the invalid callback argument.
+
+**Limits:** Multiplayer backend connection failure remains a separate migration
+gap; this is not end-to-end online Multiplayer qualification. The Android
+Release template was built but not exercised on-device in this slice. There
+are no new loading, memory or package-size optimization claims, and other
+platforms have not been requalified for this compiler change.
+
 ## 2026-10-06 — Optimized Android resource shrinking
 
 **Related commit:** `a63cae7c1b` (stable toolchain upgrade below).

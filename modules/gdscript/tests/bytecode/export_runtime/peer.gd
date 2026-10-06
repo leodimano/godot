@@ -16,3 +16,14 @@ class Inner:
 	extends RefCounted
 	func value() -> int:
 		return 3
+
+class AsyncBase:
+	func value() -> int:
+		return 41
+
+class AsyncDerived extends AsyncBase:
+	signal released
+
+	func value() -> int:
+		await released
+		return 41

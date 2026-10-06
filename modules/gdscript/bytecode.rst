@@ -159,6 +159,8 @@ The executable-export fixture covers a scene script, autoload, static
 initializer, typed constant, closure, inner class, RPC and scripted resource.
 It also exercises 64-bit integer values, typed dictionaries, native properties,
 runtime math constructors, operator caches and native string formatting. It
+also checks a typed base method with synchronous and asynchronous overrides,
+including arithmetic and bound arguments after coroutine resumption. It
 checks the PCK directory for absent source/token files, verifies the runtime's
 architecture, executes both
 storage modes, and rejects an excluded script dependency. It runs in a temporary

@@ -609,7 +609,10 @@ GDScriptCodeGenerator::Address GDScriptCompiler::_parse_expression(CodeGen &code
 			if (p_root) {
 				result = GDScriptCodeGenerator::Address(GDScriptCodeGenerator::Address::NIL);
 			} else {
-				result = codegen.add_temporary(type);
+				// A typed method can be overridden by a coroutine. Its immediate
+				// result is then a function state, not the declared return type.
+				// Keep that object out of the typed temporary pool until await resumes.
+				result = codegen.add_temporary(is_awaited ? GDScriptDataType() : type);
 			}
 
 			Vector<GDScriptCodeGenerator::Address> arguments;

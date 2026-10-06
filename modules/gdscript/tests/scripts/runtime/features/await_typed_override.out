@@ -1,0 +1,6 @@
+GDTEST_OK
+42
+synchronous: true
+suspended: true
+42
+resumed: true

@@ -4,6 +4,7 @@ const Peer = preload("res://peer.gd")
 const DATA = preload("res://data.tres")
 const WIDE_INTEGER: int = 0x123456789abcdef
 var failures: Array[String] = []
+var async_check_completed := false
 
 func check(condition: bool, message: String):
 	if not condition:
@@ -37,7 +38,25 @@ func check_portable_values():
 	var width_values: Array = [6, packed.size(), position.x - 0.75]
 	check("%*.*f" % width_values == "  2.25", "dynamic format width and precision")
 
+func check_async_override(subject: Peer.AsyncBase) -> void:
+	@warning_ignore("redundant_await")
+	var value := await subject.value()
+	var next := echo(value) + 1
+	var bound := echo.bind(next)
+	check(bound.call() == 42, "typed temporary after async override")
+	async_check_completed = true
+
 func _ready():
+	@warning_ignore("missing_await")
+	check_async_override(Peer.AsyncBase.new())
+	check(async_check_completed, "synchronous typed base call")
+	async_check_completed = false
+	var async_subject := Peer.AsyncDerived.new()
+	@warning_ignore("missing_await")
+	check_async_override(async_subject)
+	check(not async_check_completed, "async override suspends")
+	async_subject.released.emit()
+	check(async_check_completed, "async override resumes")
 	check_portable_values()
 	check(Engine.get_meta("compiled_autoload_ready", false), "autoload")
 	check(Engine.get_meta("compiled_static_ready", false), "static initializer")
