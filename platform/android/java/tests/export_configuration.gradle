@@ -1,0 +1,20 @@
+// Run with -I against a generated Android build, without assembling an APK.
+gradle.beforeProject { project ->
+    project.plugins.withId('com.android.application') {
+        project.tasks.register('verifyGodotExportConfiguration') {
+            doLast {
+                boolean minify = (project.findProperty('enable_minification') ?: 'false').toBoolean()
+                assert project.android.buildTypes.release.minifyEnabled == minify
+                assert !project.android.buildTypes.debug.minifyEnabled
+                assert !project.android.buildTypes.release.shrinkResources
+                assert !project.plugins.hasPlugin('org.jetbrains.kotlin.android')
+                assert project.android.compileOptions.targetCompatibility == JavaVersion.VERSION_17
+                String inputPath = project.findProperty('export_path') ?: '.'
+                String expectedPath = inputPath.startsWith('file:') ? inputPath.substring(5) : inputPath
+                assert project.getExportPath() == expectedPath
+                assert project.android.androidResources.noCompress.contains('gdbc')
+                println "Godot Android export configuration: 7 checks passed (minify=${minify})"
+            }
+        }
+    }
+}

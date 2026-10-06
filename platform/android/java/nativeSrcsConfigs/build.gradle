@@ -1,19 +1,18 @@
 // Non functional android library used to provide Android Studio editor support to the project.
 plugins {
     id 'com.android.library'
-    id 'org.jetbrains.kotlin.android'
 }
 
 android {
-    compileSdkVersion versions.compileSdk
-    buildToolsVersion versions.buildTools
+    compileSdk = versions.compileSdk
+    buildToolsVersion = versions.buildTools
     ndkVersion versions.ndkVersion
 
-    namespace = "org.godotengine.godot"
+    namespace = "org.godotengine.godot.nativesrcs"
 
     defaultConfig {
-        minSdkVersion versions.minSdk
-        targetSdkVersion versions.targetSdk
+        minSdk = versions.minSdk
+        targetSdk = versions.targetSdk
     }
 
     compileOptions {
@@ -21,13 +20,10 @@ android {
         targetCompatibility versions.javaVersion
     }
 
-    kotlinOptions {
-        jvmTarget = versions.javaVersion
-    }
-
-    packagingOptions {
-        exclude 'META-INF/LICENSE'
-        exclude 'META-INF/NOTICE'
+    packaging {
+        resources {
+            excludes += ['META-INF/LICENSE', 'META-INF/NOTICE']
+        }
     }
 
     sourceSets {
@@ -41,9 +37,13 @@ android {
             path "CMakeLists.txt"
         }
     }
+}
 
-    libraryVariants.all { variant ->
-        def buildType = variant.buildType.name.capitalize()
+dependencies {}
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        def buildType = variant.buildType.capitalize()
 
         def taskPrefix = ""
         if (project.path != ":") {
@@ -55,5 +55,3 @@ android {
         gradle.startParameter.excludedTaskNames += taskPrefix + "externalNativeBuild" + buildType
     }
 }
-
-dependencies {}

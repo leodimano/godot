@@ -1,7 +1,6 @@
 // Gradle build config for Godot Engine's Android port.
 plugins {
     id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
 }
 
 apply from: 'config.gradle'
@@ -100,8 +99,8 @@ dependencies {
 }
 
 android {
-    compileSdkVersion versions.compileSdk
-    buildToolsVersion versions.buildTools
+    compileSdk = versions.compileSdk
+    buildToolsVersion = versions.buildTools
     ndkVersion versions.ndkVersion
 
     compileOptions {
@@ -109,13 +108,11 @@ android {
         targetCompatibility versions.javaVersion
     }
 
-    kotlinOptions {
-        jvmTarget = versions.javaVersion
-    }
-
     assetPacks = [":assetPackInstallTime"]
 
     androidResources {
+        // Preserve Godot's hidden imported resources in exported assets.
+        ignoreAssetsPattern = "!.svn:!.git:!.gitignore:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~"
         // Avoid a second decompression layer before loading VM bundles.
         noCompress += ["gdbc"]
     }
@@ -123,11 +120,6 @@ android {
     namespace = 'com.godot.game'
 
     defaultConfig {
-        // The default ignore pattern for the 'assets' directory includes hidden files and directories which are used by Godot projects.
-        aaptOptions {
-            ignoreAssetsPattern "!.svn:!.git:!.gitignore:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~"
-        }
-
         ndk {
             debugSymbolLevel 'NONE'
             String[] export_abi_list = getExportEnabledABIs()
@@ -138,8 +130,8 @@ android {
         applicationId getExportPackageName()
         versionCode getExportVersionCode()
         versionName getExportVersionName()
-        minSdkVersion getExportMinSdkVersion()
-        targetSdkVersion getExportTargetSdkVersion()
+        minSdk = getExportMinSdkVersion()
+        targetSdk = getExportTargetSdkVersion()
 
         missingDimensionStrategy 'products', 'template'
 
@@ -155,16 +147,17 @@ android {
         execution 'ANDROIDX_TEST_ORCHESTRATOR'
     }
 
-    lintOptions {
+    lint {
         abortOnError false
         disable 'MissingTranslation', 'UnusedResources'
     }
 
     ndkVersion versions.ndkVersion
 
-    packagingOptions {
-        exclude 'META-INF/LICENSE'
-        exclude 'META-INF/NOTICE'
+    packaging {
+        resources {
+            excludes += ['META-INF/LICENSE', 'META-INF/NOTICE']
+        }
 
         // Debug symbols are kept for development within Android Studio.
         if (shouldNotStrip()) {
@@ -181,11 +174,8 @@ android {
             useLegacyPackaging shouldUseLegacyPackaging()
         }
 
-        // Always select Godot's version of libc++_shared.so in case deps have their own
-        pickFirst 'lib/x86/libc++_shared.so'
-        pickFirst 'lib/x86_64/libc++_shared.so'
-        pickFirst 'lib/armeabi-v7a/libc++_shared.so'
-        pickFirst 'lib/arm64-v8a/libc++_shared.so'
+        // Always select Godot's version when dependencies also ship the C++ runtime.
+        jniLibs.pickFirsts += ['lib/*/libc++_shared.so']
     }
 
     signingConfigs {
@@ -242,12 +232,12 @@ android {
         }
     }
 
-    flavorDimensions 'edition'
+    flavorDimensions = ['edition']
 
     productFlavors {
         // Product flavor for the standard (no .net support) builds.
         standard {
-            getIsDefault().set(true)
+            isDefault = true
         }
 
         // Product flavor for the Mono (.net) builds.
@@ -266,40 +256,40 @@ android {
         release.jniLibs.srcDirs = ['libs/release']
     }
 
-    applicationVariants.all { variant ->
-        variant.outputs.all { output ->
-            String filenameSuffix = variant.flavorName == "mono" ? variant.name : variant.buildType.name
-            output.outputFileName = "android_${filenameSuffix}.apk"
-        }
-    }
 }
 
-task copyAndRenameBinary(type: Copy) {
-    // The 'doNotTrackState' is added to disable gradle's up-to-date checks for output files
-    // and directories. Otherwise this check may cause permissions access failures on Windows
-    // machines.
-    doNotTrackState("No need for up-to-date checks for the copy-and-rename operation")
+androidComponents {
+    onVariants(selector().withName(getExportEdition() + getExportBuildType().capitalize())) { variant ->
+        def builtArtifactsLoader = variant.artifacts.getBuiltArtifactsLoader()
+        tasks.register("copyAndRenameBinary", Copy) {
+            // The editor invokes this after building, without repeating signing properties.
+            // Read the built APK metadata instead of guessing signed/unsigned filenames.
+            doNotTrackState("Copy the already built export without rebuilding or changing it")
 
-    String exportPath = getExportPath()
-    String exportFilename = getExportFilename()
-    String exportEdition = getExportEdition()
-    String exportBuildType = getExportBuildType()
-    String exportBuildTypeCapitalized = exportBuildType.capitalize()
-    String exportFormat = getExportFormat()
-
-    boolean isAab = exportFormat == "aab"
-    boolean isMono = exportEdition == "mono"
-    String filenameSuffix = isAab ? "${exportEdition}-${exportBuildType}" : exportBuildType
-    if (isMono) {
-        filenameSuffix = isAab ? "${exportEdition}-${exportBuildType}" : "${exportEdition}${exportBuildTypeCapitalized}"
+            String exportEdition = getExportEdition()
+            String exportBuildType = getExportBuildType()
+            String variantName = exportEdition + exportBuildType.capitalize()
+            from({
+                File outputFile
+                if (getExportFormat() == "aab") {
+                    outputFile = layout.buildDirectory.file("outputs/bundle/${variantName}/${project.name}-${exportEdition}-${exportBuildType}.aab").get().asFile
+                } else {
+                    def apkDirectory = layout.buildDirectory.dir("outputs/apk/${exportEdition}/${exportBuildType}").get()
+                    def builtArtifacts = builtArtifactsLoader.load(apkDirectory)
+                    if (builtArtifacts == null || builtArtifacts.elements.size() != 1) {
+                        throw new GradleException("Expected one built APK for ${variantName}.")
+                    }
+                    outputFile = new File(builtArtifacts.elements.first().outputFile)
+                }
+                if (!outputFile.isFile()) {
+                    throw new GradleException("Export artifact does not exist: ${outputFile}")
+                }
+                return outputFile
+            })
+            into getExportPath()
+            rename { getExportFilename() }
+        }
     }
-
-    String sourceFilename = isAab ? "${project.name}-${filenameSuffix}.aab" : "android_${filenameSuffix}.apk"
-    String sourceFilepath = isAab ? "$buildDir/outputs/bundle/${exportEdition}${exportBuildTypeCapitalized}/$sourceFilename" : "$buildDir/outputs/apk/$exportEdition/$exportBuildType/$sourceFilename"
-
-    from sourceFilepath
-    into exportPath
-    rename sourceFilename, exportFilename
 }
 
 /**

@@ -10,6 +10,34 @@ separate. Each milestone records what changed, why, the evidence and its limits.
 Application measurements are configuration/device-specific, not general engine
 benchmarks. Missing measurements remain unmeasured.
 
+## 2026-10-06 — Stable Android build-toolchain upgrade
+
+**Why:** Adopt current stable Android compiler/optimizer fixes and supported SDK
+tooling while preserving the native engine, game assets and export contracts.
+
+**Change:** Updated Gradle **8.11.1 -> 9.8.0** and AGP **8.6.1 -> 9.4.1**.
+Release mapping output confirms bundled **R8 9.4.24** (previously 8.6.27).
+Migrated to built-in Kotlin and public variant APIs; regenerated and verified
+the Gradle wrapper against official checksums. Java bytecode remains Java 17.
+Kept Godot's public artifact names at the packaging boundary, used the public
+built-artifact loader for APK copies, and normalized legacy editor export paths
+that Gradle 9 no longer accepts on Windows. No VM/native implementation changed.
+
+**Results:** Both templates built in the existing official Android container;
+all four native entries in the template AARs match the baseline byte-for-byte.
+Fourteen resolved Gradle configuration checks passed with minification on/off.
+The full Bike project exported a signed Debug APK and an unsigned Release APK
+through the existing Wild editor. Artifact checks passed for extension closure,
+Debug exclusions and exact physics binaries after the normal NDK stripping
+transform. Modified native-library test inputs were rejected.
+
+**Limits:** This entry establishes template/export compatibility, not a new
+device, startup or memory qualification. Resource shrinking is still disabled
+at this milestone. Gradle/Kotlin deprecations and existing iOS-descriptor/ICU
+export diagnostics remain recorded. Android editor/XR/.NET runtime execution
+and store publication are not covered by these product-template checks.
+See [Android build tooling](platform/android/java/README.md) for the recipe.
+
 ## 2026-10-05 — Opt-in Android R8 export optimization
 
 **Commit:** `dcf86027bb` (backport of upstream `f2fbde174af`).

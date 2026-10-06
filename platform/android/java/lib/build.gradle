@@ -1,6 +1,5 @@
 plugins {
     id 'com.android.library'
-    id 'org.jetbrains.kotlin.android'
 }
 
 ext {
@@ -21,13 +20,13 @@ dependencies {
 def pathToRootDir = "../../../../"
 
 android {
-    compileSdkVersion versions.compileSdk
-    buildToolsVersion versions.buildTools
+    compileSdk = versions.compileSdk
+    buildToolsVersion = versions.buildTools
     ndkVersion versions.ndkVersion
 
     defaultConfig {
-        minSdkVersion versions.minSdk
-        targetSdkVersion versions.targetSdk
+        minSdk = versions.minSdk
+        targetSdk = versions.targetSdk
 
         manifestPlaceholders = [godotLibraryVersion: getGodotLibraryVersionName()]
     }
@@ -37,10 +36,6 @@ android {
     compileOptions {
         sourceCompatibility versions.javaVersion
         targetCompatibility versions.javaVersion
-    }
-
-    kotlinOptions {
-        jvmTarget = versions.javaVersion
     }
 
     buildFeatures {
@@ -54,14 +49,15 @@ android {
         template {}
     }
 
-    lintOptions {
+    lint {
         abortOnError false
         disable 'MissingTranslation', 'UnusedResources'
     }
 
-    packagingOptions {
-        exclude 'META-INF/LICENSE'
-        exclude 'META-INF/NOTICE'
+    packaging {
+        resources {
+            excludes += ['META-INF/LICENSE', 'META-INF/NOTICE']
+        }
 
         // Debug symbols are kept for development within Android Studio.
         if (shouldNotStrip()) {
@@ -80,13 +76,30 @@ android {
         editorDebug.jniLibs.srcDirs = ['libs/tools/debug']
     }
 
-    libraryVariants.all { variant ->
-        def flavorName = variant.getFlavorName()
+    publishing {
+        singleVariant("templateDebug") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+        singleVariant("templateRelease") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+        singleVariant("editorRelease") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
+}
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        def flavorName = variant.flavorName
         if (flavorName == null || flavorName == "") {
             throw new GradleException("Invalid product flavor: $flavorName")
         }
 
-        def buildType = variant.buildType.name
+        def buildType = variant.buildType
         if (buildType == null || buildType == "" || !supportedFlavorsBuildTypes[flavorName].contains(buildType)) {
             throw new GradleException("Invalid build type: $buildType")
         }
@@ -112,12 +125,6 @@ android {
                     sconsTarget += "_debug"
                     break
             }
-        }
-
-        // Update the name of the generated library
-        def outputSuffix = "${sconsTarget}"
-        variant.outputs.all { output ->
-            output.outputFileName = "godot-lib.${outputSuffix}.aar"
         }
 
         // Find scons' executable path
@@ -162,22 +169,9 @@ android {
             }
 
             // Schedule the tasks so the generated libs are present before the aar file is packaged.
-            tasks["merge${flavorName.capitalize()}${buildType.capitalize()}JniLibFolders"].dependsOn taskName
-        }
-    }
-
-    publishing {
-        singleVariant("templateDebug") {
-            withSourcesJar()
-            withJavadocJar()
-        }
-        singleVariant("templateRelease") {
-            withSourcesJar()
-            withJavadocJar()
-        }
-        singleVariant("editorRelease") {
-            withSourcesJar()
-            withJavadocJar()
+            tasks.matching { it.name == "merge${variant.name.capitalize()}JniLibFolders" }.configureEach {
+                dependsOn taskName
+            }
         }
     }
 }

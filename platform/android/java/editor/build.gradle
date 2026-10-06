@@ -1,7 +1,6 @@
 // Gradle build config for Godot Engine's Android port.
 plugins {
     id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
     id 'base'
 }
 
@@ -70,8 +69,8 @@ def generateVersionName() {
 }
 
 android {
-    compileSdkVersion versions.compileSdk
-    buildToolsVersion versions.buildTools
+    compileSdk = versions.compileSdk
+    buildToolsVersion = versions.buildTools
     ndkVersion versions.ndkVersion
 
     namespace = "org.godotengine.editor"
@@ -81,8 +80,8 @@ android {
         applicationId "org.godotengine.editor.v4"
         versionCode generateVersionCode()
         versionName generateVersionName()
-        minSdkVersion versions.minSdk
-        targetSdkVersion versions.targetSdk
+        minSdk = versions.minSdk
+        targetSdk = versions.targetSdk
 
         missingDimensionStrategy 'products', 'editor'
         manifestPlaceholders += [
@@ -111,10 +110,6 @@ android {
     compileOptions {
         sourceCompatibility versions.javaVersion
         targetCompatibility versions.javaVersion
-    }
-
-    kotlinOptions {
-        jvmTarget = versions.javaVersion
     }
 
     signingConfigs {
@@ -152,7 +147,7 @@ android {
         }
     }
 
-    packagingOptions {
+    packaging {
         // Debug symbols are kept for development within Android Studio.
         if (shouldNotStrip()) {
             jniLibs {
@@ -181,7 +176,7 @@ android {
             }
             applicationIdSuffix ".meta"
             versionNameSuffix "-meta"
-            targetSdkVersion 32
+            targetSdk = 32
         }
         picoos {
             dimension "android_distribution"
@@ -192,8 +187,8 @@ android {
             }
             applicationIdSuffix ".pico"
             versionNameSuffix "-pico"
-            minSdkVersion 29
-            targetSdkVersion 32
+            minSdk = 29
+            targetSdk = 32
         }
     }
 }

@@ -154,7 +154,8 @@ def generateBuildTasks(String flavor = "template", String edition = "standard", 
                     buildTasks += tasks.create(name: copyAARTaskName, type: Copy) {
                         dependsOn ":lib:assembleTemplate${capitalizedTarget}"
                         from('lib/build/outputs/aar')
-                        include("godot-lib.template_${targetSuffix}.aar")
+                        include("lib-template-${targetSuffix}.aar")
+                        rename("lib-template-${targetSuffix}.aar", "godot-lib.template_${targetSuffix}.aar")
                         into("app/libs/${target}")
                     }
                 }
@@ -168,7 +169,8 @@ def generateBuildTasks(String flavor = "template", String edition = "standard", 
                     buildTasks += tasks.create(name: copyAARToBinTaskName, type: Copy) {
                         dependsOn ":lib:assembleTemplate${capitalizedTarget}"
                         from('lib/build/outputs/aar')
-                        include("godot-lib.template_${targetSuffix}.aar")
+                        include("lib-template-${targetSuffix}.aar")
+                        rename("lib-template-${targetSuffix}.aar", "godot-lib.template_${targetSuffix}.aar")
                         into(binDir)
                     }
                 }
@@ -183,7 +185,9 @@ def generateBuildTasks(String flavor = "template", String edition = "standard", 
                         String filenameSuffix = edition == "mono" ? "${edition}${capitalizedTarget}" : target
                         dependsOn ":app:assemble${capitalizedEdition}${capitalizedTarget}"
                         from("app/build/outputs/apk/${edition}/${target}") {
-                            include("android_${filenameSuffix}.apk")
+                            String unsignedSuffix = shouldSign() ? "" : "-unsigned"
+                            include("app-${edition}-${target}${unsignedSuffix}.apk")
+                            rename("app-${edition}-${target}${unsignedSuffix}.apk", "android_${filenameSuffix}.apk")
                         }
                         into(binDir)
                     }
